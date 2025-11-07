@@ -26,6 +26,7 @@ class _LoginPageState extends State<LoginPage> {
     // attempt login..
     try {
       await authService.signInWithEmailPassword(email, password);
+      if (!mounted) return; // guard the use with a 'mounted' check
     }
     // catch any errors
     catch (e) {

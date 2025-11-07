@@ -37,15 +37,14 @@ class _RegisterPageState extends State<RegisterPage> {
       await authService.signUpWithEmailPassword(email, password);
 
       // pop this register page
+      if (!mounted) return; // guard the use with a 'mounted' check
       Navigator.pop(context);
     }
     // catch any errors..
     catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
-      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
     }
   }
 
