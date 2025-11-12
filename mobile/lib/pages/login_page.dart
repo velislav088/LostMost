@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile/auth/auth_service.dart';
-import 'package:mobile/pages/register_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -27,6 +27,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await authService.signInWithEmailPassword(email, password);
       if (!mounted) return; // guard the use with a 'mounted' check
+      context.go('/');
     }
     // catch any errors
     catch (e) {
@@ -65,10 +66,7 @@ class _LoginPageState extends State<LoginPage> {
 
           // go to register page to sign up
           GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const RegisterPage()),
-            ),
+            onTap: () => context.go('/register'),
             child: const Center(child: Text("Don't have an account? Sign Up")),
           ),
         ],

@@ -83,4 +83,50 @@ void main() {
 
     expect(email, 'user@email.com');
   });
+
+  test('signInWithEmailPassword throws error on failed sign-in', () async {
+    when(
+      () => mockAuth.signInWithPassword(
+        email: any(named: 'email'),
+        password: any(named: 'password'),
+      ),
+    ).thenThrow(Exception('Failed login'));
+
+    expect(
+      () => authService.signInWithEmailPassword('fail@test.com', 'wrongpass'),
+      throwsA(isA<Exception>()),
+    );
+
+    verify(
+      () => mockAuth.signInWithPassword(
+        email: 'fail@test.com',
+        password: 'wrongpass',
+      ),
+    ).called(1);
+  });
+
+  test('signUpWithEmailPassword throws error on failed sign-up', () async {
+    when(
+      () => mockAuth.signUp(
+        email: any(named: 'email'),
+        password: any(named: 'password'),
+      ),
+    ).thenThrow(Exception('Failed sign-up'));
+
+    expect(
+      () => authService.signUpWithEmailPassword('fail@test.com', 'pass123'),
+      throwsA(isA<Exception>()),
+    );
+
+    verify(
+      () => mockAuth.signUp(email: 'fail@test.com', password: 'pass123'),
+    ).called(1);
+  });
+
+  test('getCurrentUserEmail returns null if there is no current session', () {
+    when(() => mockAuth.currentSession).thenReturn(null);
+
+    final email = authService.getCurrentUserEmail();
+    expect(email, isNull);
+  });
 }

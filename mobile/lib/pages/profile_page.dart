@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile/auth/auth_service.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -12,9 +13,39 @@ class _ProfilePageState extends State<ProfilePage> {
   // get auth service
   final authService = AuthService();
 
-  // logout button pressed
+  // confirm logout
+  void confirmLogout() async {
+    // get user choice
+    final logoutDialog = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Log out"),
+        content: const Text("Are you sure you want to log out?"),
+        actions: [
+          TextButton(
+            // cancel
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            // confirm
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Logout"),
+          ),
+        ],
+      ),
+    );
+
+    if (logoutDialog == true) {
+      logout();
+    }
+  }
+
+  // logout
   void logout() async {
     await authService.signOut();
+    if (!mounted) return; // guard the use with a 'mounted' check
+    context.go('/login');
   }
 
   @override
@@ -27,7 +58,7 @@ class _ProfilePageState extends State<ProfilePage> {
         title: const Text("Profile"),
         actions: [
           // logout button
-          IconButton(onPressed: logout, icon: Icon(Icons.logout)),
+          IconButton(onPressed: confirmLogout, icon: Icon(Icons.logout)),
         ],
       ),
 

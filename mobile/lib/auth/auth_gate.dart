@@ -10,8 +10,8 @@ authenticated -> Profile Page
 */
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile/pages/login_page.dart';
-import 'package:mobile/pages/profile_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthGate extends StatelessWidget {
@@ -35,11 +35,15 @@ class AuthGate extends StatelessWidget {
         // check if there is a valid session currently
         final session = snapshot.hasData ? snapshot.data!.session : null;
 
-        if (session != null) {
-          return ProfilePage();
-        } else {
-          return LoginPage();
-        }
+        // Schedule navigation after current build frame.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (session != null) {
+            context.go('/');
+          } else {
+            context.go('/login');
+          }
+        });
+        return LoginPage();
       },
     );
   }

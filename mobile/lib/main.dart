@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/auth/auth_gate.dart';
+import 'package:mobile/pages/home_page.dart';
+import 'package:mobile/pages/login_page.dart';
+import 'package:mobile/pages/profile_page.dart';
+import 'package:mobile/pages/register_page.dart';
+import 'package:mobile/pages/search_page.dart';
+import 'package:mobile/widgets/navigation_scaffold.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:go_router/go_router.dart';
 
 void main() async {
   // supabase setup
@@ -12,11 +19,57 @@ void main() async {
   runApp(MyApp());
 }
 
+final _router = GoRouter(
+  initialLocation: '/auth',
+  routes: [
+    // unauthorised pages
+    GoRoute(path: '/auth', builder: (context, state) => const AuthGate()),
+    GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+    GoRoute(
+      path: '/register',
+      builder: (context, state) => const RegisterPage(),
+    ),
+
+    // navbar routes
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) =>
+          NavigationScaffold(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/',
+              builder: (context, state) => const HomePage(),
+            ), // home page
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/search',
+              builder: (context, state) => const SearchPage(), // search page
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/profile',
+              builder: (context, state) => const ProfilePage(), // profile page
+            ),
+          ],
+        ),
+      ],
+    ),
+  ],
+);
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: AuthGate());
+    // use go_router
+    return MaterialApp.router(routerConfig: _router);
   }
 }
