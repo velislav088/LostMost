@@ -1,0 +1,88 @@
+name: Mobile CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+
+      - name: Get packages
+        run: cd mobile && flutter pub get
+
+      - name: Check formatting
+        run: cd mobile && dart format --output=none --set-exit-if-changed .
+
+  analyze-code:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+
+      - name: Get packages
+        run: cd mobile && flutter pub get
+
+      - name: Analyze code
+        run: cd mobile && flutter analyze
+
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+
+      - name: Get packages
+        run: cd mobile && flutter pub get
+
+      - name: Run tests
+        run: cd mobile && flutter test
+
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "17"
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+
+      - name: Get packages
+        run: cd mobile && flutter pub get
+
+      - name: Build APK
+        run: cd mobile && flutter build apk --release
