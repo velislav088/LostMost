@@ -98,14 +98,16 @@ jobs:
           echo "MQTT_PASSWORD=${{ secrets.MQTT_PASSWORD }}" >> $GITHUB_ENV
 
       - name: Build APK
-        run: cd mobile && flutter build apk --release \
-          --build-name=1.0.0 \
-          --build-number=$GITHUB_RUN_NUMBER \
-          --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-          --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
-          --dart-define=MQTT_SERVER=${{ secrets.MQTT_SERVER }} \
-          --dart-define=MQTT_USERNAME=${{ secrets.MQTT_USERNAME }} \
-          --dart-define=MQTT_PASSWORD=${{ secrets.MQTT_PASSWORD }}
+        run: |
+          cd mobile
+          flutter build apk --release \
+            --build-name=1.0.0 \
+            --build-number=$GITHUB_RUN_NUMBER \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            --dart-define=MQTT_SERVER=${{ secrets.MQTT_SERVER }} \
+            --dart-define=MQTT_USERNAME=${{ secrets.MQTT_USERNAME }} \
+            --dart-define=MQTT_PASSWORD=${{ secrets.MQTT_PASSWORD }}
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
