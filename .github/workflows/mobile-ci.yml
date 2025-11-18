@@ -9,66 +9,72 @@ on:
       - main
 
 jobs:
-  check-format:
+  setup:
+    name: Setup Flutter
     runs-on: ubuntu-latest
 
+    outputs:
+      flutter-path: ${{ steps.flutter-path.outputs.flutter }}
     steps:
       - name: Get code
         uses: actions/checkout@v4
 
       - name: Install Flutter
+        id: flutter-path
         uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.35.5"
 
+      - name: Cache Flutter
+        uses: actions/cache@v3
+        with:
+          path: ~/.flutter
+          key: flutter-${{ runner.os }}-3.35.5
+
+      - name: Cache pub packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.pub-cache
+            mobile/.dart_tool
+          key: pub-${{ runner.os }}-${{ hashFiles('mobile/pubspec.lock') }}
+
       - name: Get packages
         run: cd mobile && flutter pub get
 
-      - name: Check formatting
-        run: cd mobile && dart format --output=none --set-exit-if-changed .
-
-  analyze-code:
+  checks:
+    name: Format, Analyze, Test
+    needs: setup
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        task: [format, analyze, test]
     steps:
-      - name: Get code
-        uses: actions/checkout@v4
-
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.35.5"
 
       - name: Get packages
         run: cd mobile && flutter pub get
-
-      - name: Analyze code
-        run: cd mobile && flutter analyze
-
-  run-tests:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Get code
-        uses: actions/checkout@v4
-
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.35.5"
-
-      - name: Get packages
-        run: cd mobile && flutter pub get
-
-      - name: Run tests
-        run: cd mobile && flutter test
-
+      - name: Run tasks
+        run: |
+          cd mobile
+          if [ "${{ matrix.task }}" = "format" ]; then
+            dart format --output=none --set-exit-if-changed .
+          elif [ "${{ matrix.task }}" = "analyze" ]; then
+            flutter analyze
+          elif [ "${{ matrix.task }}" = "test" ]; then
+            flutter test --coverage
+          fi
   build-android:
+    name: Build Android APK
+    needs: setup
     runs-on: ubuntu-latest
 
     steps:
-      - name: Get code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install Java
         uses: actions/setup-java@v4
@@ -76,13 +82,33 @@ jobs:
           distribution: "zulu"
           java-version: "17"
 
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.35.5"
 
       - name: Get packages
         run: cd mobile && flutter pub get
 
+      - name: Set environment variables
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> $GITHUB_ENV
+          echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> $GITHUB_ENV
+          echo "MQTT_SERVER=${{ secrets.MQTT_SERVER }}" >> $GITHUB_ENV
+          echo "MQTT_USERNAME=${{ secrets.MQTT_USERNAME }}" >> $GITHUB_ENV
+          echo "MQTT_PASSWORD=${{ secrets.MQTT_PASSWORD }}" >> $GITHUB_ENV
+
       - name: Build APK
-        run: cd mobile && flutter build apk --release
+        run: cd mobile && flutter build apk --release \
+          --build-name=1.0.0 \
+          --build-number=$GITHUB_RUN_NUMBER \
+          --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+          --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+          --dart-define=MQTT_SERVER=${{ secrets.MQTT_SERVER }} \
+          --dart-define=MQTT_USERNAME=${{ secrets.MQTT_USERNAME }} \
+          --dart-define=MQTT_PASSWORD=${{ secrets.MQTT_PASSWORD }}
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
