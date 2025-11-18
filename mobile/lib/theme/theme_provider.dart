@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum ThemeOption {
-  system,
-  light,
-  dark,
-}
+enum ThemeOption { system, light, dark }
 
 class ThemeProvider extends ChangeNotifier {
   ThemeOption _themeOption = ThemeOption.system;
@@ -34,7 +30,7 @@ class ThemeProvider extends ChangeNotifier {
     await _saveThemePreference();
   }
 
-    // Loads saved theme from SharedPreferences
+  // Loads saved theme from SharedPreferences
   Future<void> _loadThemePreference() async {
     final prefs = await SharedPreferences.getInstance();
     final themeName = prefs.getString(_themeKey);
