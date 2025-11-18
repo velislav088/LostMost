@@ -5,13 +5,12 @@ AUTH GATE - This will continuously listen for auth state changes.
 --------------------------------------------------------------------------------------------------------------------------
 
 unauthenticated -> Login Page
-authenticated -> Profile Page
+authenticated -> Home Page
 
 */
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mobile/pages/login_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthGate extends StatelessWidget {
@@ -43,7 +42,9 @@ class AuthGate extends StatelessWidget {
             context.go('/login');
           }
         });
-        return LoginPage();
+
+        // return loader..
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
       },
     );
   }
