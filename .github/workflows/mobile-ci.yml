@@ -42,6 +42,11 @@ jobs:
       - name: Get packages
         run: cd mobile && flutter pub get
 
+      - name: Create assets folder
+        run: |
+          cd mobile
+          mkdir -p assets
+
   checks:
     name: Format, Analyze, Test
     needs: setup
@@ -58,6 +63,12 @@ jobs:
 
       - name: Get packages
         run: cd mobile && flutter pub get
+
+      - name: Create assets folder
+        run: |
+          cd mobile
+          mkdir -p assets
+
       - name: Run tasks
         run: |
           cd mobile
@@ -88,6 +99,11 @@ jobs:
 
       - name: Get packages
         run: cd mobile && flutter pub get
+
+      - name: Create assets folder
+        run: |
+          cd mobile
+          mkdir -p assets
 
       - name: Set environment variables
         run: |
