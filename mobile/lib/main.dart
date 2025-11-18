@@ -1,22 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mobile/auth/auth_gate.dart';
 import 'package:mobile/pages/home_page.dart';
 import 'package:mobile/pages/login_page.dart';
 import 'package:mobile/pages/profile_page.dart';
 import 'package:mobile/pages/register_page.dart';
 import 'package:mobile/pages/search_page.dart';
+import 'package:mobile/theme/app_theme.dart';
+import 'package:mobile/theme/theme_provider.dart';
 import 'package:mobile/widgets/navigation_scaffold.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // load environment variables
+  await dotenv.load(fileName: "assets/.env");
+
+  final supabaseAnonKey = dotenv.get('SUPABASE_ANON_KEY');
+  final supabaseUrl = dotenv.get('SUPABASE_URL');
+
   // supabase setup
-  await Supabase.initialize(
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyZ25zaHNvZ2l4Y215dW9pdHFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI0Mjg1MzEsImV4cCI6MjA3ODAwNDUzMX0.ndi_l6YeNslAs3QvA-7i5a0qjZW4-4_YNYdCU--ffao',
-    url: 'https://srgnshsogixcmyuoitqh.supabase.co',
+  await Supabase.initialize(anonKey: supabaseAnonKey, url: supabaseUrl);
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: const MyApp(),
+    ),
   );
-  runApp(MyApp());
 }
 
 final _router = GoRouter(
@@ -37,17 +51,14 @@ final _router = GoRouter(
       branches: [
         StatefulShellBranch(
           routes: [
-            GoRoute(
-              path: '/',
-              builder: (context, state) => const HomePage(),
-            ), // home page
+            GoRoute(path: '/', builder: (context, state) => const HomePage()),
           ],
         ),
         StatefulShellBranch(
           routes: [
             GoRoute(
               path: '/search',
-              builder: (context, state) => const SearchPage(), // search page
+              builder: (context, state) => const SearchPage(),
             ),
           ],
         ),
@@ -55,7 +66,7 @@ final _router = GoRouter(
           routes: [
             GoRoute(
               path: '/profile',
-              builder: (context, state) => const ProfilePage(), // profile page
+              builder: (context, state) => const ProfilePage(),
             ),
           ],
         ),
@@ -69,7 +80,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // use go_router
-    return MaterialApp.router(routerConfig: _router);
+    // get theme (light/dark)
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
+    // use go_router and themes
+    return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeProvider.themeMode,
+      routerConfig: _router,
+    );
   }
 }

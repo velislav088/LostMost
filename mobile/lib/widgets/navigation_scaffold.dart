@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
+import 'package:mobile/theme/app_theme.dart';
 
 class NavigationScaffold extends StatelessWidget {
   // Create StatefulNavigationShell settings to route the navbar properly.
@@ -17,14 +18,14 @@ class NavigationScaffold extends StatelessWidget {
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: Container(
-        color: Colors.black,
+        color: context.bgLight,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
           child: GNav(
-            backgroundColor: Colors.black,
-            color: Colors.white,
-            activeColor: Colors.black,
-            tabBackgroundColor: Colors.white,
+            backgroundColor: context.bgLight,
+            color: context.textMuted,
+            activeColor: context.bgLight,
+            tabBackgroundColor: context.primary,
             gap: 8,
             onTabChange: (index) => _onTabChange(context, index),
             padding: EdgeInsets.all(16),
