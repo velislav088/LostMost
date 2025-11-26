@@ -476,7 +476,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     leading: Icon(Icons.info_outline, color: context.textMuted),
                     title: Text(t('version')),
                     trailing: Text(
-                      '0.1.0-alpha',
+                      '0.1.0',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: context.textMuted,
                       ),
