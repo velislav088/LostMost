@@ -18,8 +18,6 @@ class AuthService {
       password: password,
     );
   }
-  // FIXME: Authentication doesn't work on first try and the app needs a hot restart - after there's no problems.
-  // UPDATE: Should be fixed now, might've been a caching bug from the device.
 
   // Sign up with email and password
   Future<AuthResponse> signUpWithEmailPassword(

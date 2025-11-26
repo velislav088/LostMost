@@ -4,7 +4,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 
-// TODO: Remove a lot of the comments used from previous debugs.
 class MQTTService {
   // get broker env variables
   static String get mqttServer => dotenv.get('MQTT_SERVER');
@@ -31,11 +30,6 @@ class MQTTService {
     _client.secure = true;
     _client.keepAlivePeriod = 20;
 
-    // for debugging
-    // _client.onConnected = () => print('Connected');
-    // _client.onDisconnected = () => print('Disconnected');
-    // _client.onSubscribed = (topic) => print('Subscribed to $topic');
-
     final connMsg = MqttConnectMessage()
         .withClientIdentifier(
           'flutter_client_${DateTime.now().millisecondsSinceEpoch}',
@@ -51,7 +45,6 @@ class MQTTService {
     }
     // catch any errors
     catch (e) {
-      // print('Connection failed: $e');
       _client.disconnect();
       return;
     }
@@ -67,26 +60,20 @@ class MQTTService {
       if (c == null) return;
 
       for (var message in c) {
-        // final topic = message.topic;
         final payload = (message.payload as MqttPublishMessage).payload.message;
         final payloadString = MqttPublishPayload.bytesToStringAsString(payload);
-        // print('Received on $topic: $payloadString');
+        final data = jsonDecode(payloadString);
 
-        try {
-          final data = jsonDecode(payloadString);
-
-          if (data['devices'] != null && data['devices'].isNotEmpty) {
-            final rssiValue = data['devices'][0]['rssi'].toString();
-            _rssiController.add("RSSI: $rssiValue");
-          } else {
-            _rssiController.add("No devices found");
-          }
-        } catch (e) {
-          // print('Error parsing JSON: $e');
+        if (data['devices'] != null && data['devices'].isNotEmpty) {
+          final rssiValue = data['devices'][0]['rssi'].toString();
+          _rssiController.add("RSSI: $rssiValue");
+        } else {
+          _rssiController.add("No devices found");
         }
       }
     });
 
+    // Send topic every 10 seconds
     _scanTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       final requestId = "flutter_${DateTime.now().millisecondsSinceEpoch}";
       final scanMessage = jsonEncode({
@@ -100,7 +87,6 @@ class MQTTService {
         MqttQos.atMostOnce,
         builder.payload!,
       );
-      // print('Sent scan command: $scanMessage');
     });
   }
 
