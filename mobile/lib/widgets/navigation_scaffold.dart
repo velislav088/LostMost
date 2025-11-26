@@ -31,9 +31,18 @@ class NavigationScaffold extends StatelessWidget {
             onTabChange: (index) => _onTabChange(context, index),
             padding: EdgeInsets.all(16),
             tabs: [
-              GButton(icon: Icons.home, text: AppLocalizations.of(context, 'nav_home')),
-              GButton(icon: Icons.search, text: AppLocalizations.of(context, 'nav_search')),
-              GButton(icon: Icons.settings, text: AppLocalizations.of(context, 'nav_settings')),
+              GButton(
+                icon: Icons.home,
+                text: AppLocalizations.of(context, 'nav_home'),
+              ),
+              GButton(
+                icon: Icons.search,
+                text: AppLocalizations.of(context, 'nav_search'),
+              ),
+              GButton(
+                icon: Icons.settings,
+                text: AppLocalizations.of(context, 'nav_settings'),
+              ),
             ],
           ),
         ),

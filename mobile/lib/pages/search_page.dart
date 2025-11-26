@@ -13,7 +13,10 @@ class SearchPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(Icons.search, size: 100),
-            Text(AppLocalizations.of(context, 'search_page'), style: const TextStyle(fontSize: 24)),
+            Text(
+              AppLocalizations.of(context, 'search_page'),
+              style: const TextStyle(fontSize: 24),
+            ),
           ],
         ),
       ),

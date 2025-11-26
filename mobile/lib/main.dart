@@ -99,10 +99,7 @@ class MyApp extends StatelessWidget {
       themeMode: themeProvider.themeMode,
       routerConfig: _router,
       locale: settingsProvider.locale,
-      supportedLocales: const [
-        Locale('en'),
-        Locale('bg'),
-      ],
+      supportedLocales: const [Locale('en'), Locale('bg')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

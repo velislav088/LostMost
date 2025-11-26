@@ -59,7 +59,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final rssiValue = _rssi != null ? int.tryParse(_rssi!) : null;
-    
+
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context, 'home_title'))),
       body: Center(

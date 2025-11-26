@@ -72,20 +72,20 @@ class _ProfilePageState extends State<ProfilePage> {
       }
       await _calculateCacheSize();
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(
-        content: const Text('Cache cleared'),
-        backgroundColor: context.info,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Cache cleared'),
+          backgroundColor: context.info,
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(
-        content: Text('Failed to clear cache: $e'),
-        backgroundColor: context.info,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to clear cache: $e'),
+          backgroundColor: context.info,
+        ),
+      );
     }
   }
 
@@ -218,22 +218,39 @@ class _ProfilePageState extends State<ProfilePage> {
                                   final newPassword = passwordController.text;
                                   if (newPassword.isNotEmpty) {
                                     try {
-                                      final authService = Provider.of<AuthService>(context, listen: false);
-                                      await authService.updatePassword(newPassword);
+                                      final authService =
+                                          Provider.of<AuthService>(
+                                            context,
+                                            listen: false,
+                                          );
+                                      await authService.updatePassword(
+                                        newPassword,
+                                      );
                                       if (!context.mounted) return;
                                       context.pop();
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
-                                          content: Text(t('password_updated', listen: false)),
+                                          content: Text(
+                                            t(
+                                              'password_updated',
+                                              listen: false,
+                                            ),
+                                          ),
                                           backgroundColor: context.info,
                                         ),
                                       );
                                     } catch (e) {
                                       if (!context.mounted) return;
                                       context.go('/profile');
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
-                                          content: Text("${t('password_update_failed', listen: false)}: $e"),
+                                          content: Text(
+                                            "${t('password_update_failed', listen: false)}: $e",
+                                          ),
                                           backgroundColor: context.info,
                                         ),
                                       );
@@ -496,11 +513,26 @@ class _ProfilePageState extends State<ProfilePage> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _ColorChip(label: t('primary_color'), color: context.primary),
-                      _ColorChip(label: t('secondary_color'), color: context.secondary),
-                      _ColorChip(label: t('success_color'), color: context.success),
-                      _ColorChip(label: t('warning_color'), color: context.warning),
-                      _ColorChip(label: t('danger_color'), color: context.danger),
+                      _ColorChip(
+                        label: t('primary_color'),
+                        color: context.primary,
+                      ),
+                      _ColorChip(
+                        label: t('secondary_color'),
+                        color: context.secondary,
+                      ),
+                      _ColorChip(
+                        label: t('success_color'),
+                        color: context.success,
+                      ),
+                      _ColorChip(
+                        label: t('warning_color'),
+                        color: context.warning,
+                      ),
+                      _ColorChip(
+                        label: t('danger_color'),
+                        color: context.danger,
+                      ),
                       _ColorChip(label: t('info_color'), color: context.info),
                     ],
                   ),

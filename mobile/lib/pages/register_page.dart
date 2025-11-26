@@ -28,12 +28,14 @@ class _RegisterPageState extends State<RegisterPage> {
 
     // check that passwords match
     if (password != confirmPassword) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(
-        content: Text(AppLocalizations.of(context, 'passwords_mismatch', listen: false)),
-        backgroundColor: context.info,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context, 'passwords_mismatch', listen: false),
+          ),
+          backgroundColor: context.info,
+        ),
+      );
       return;
     }
 
@@ -47,22 +49,21 @@ class _RegisterPageState extends State<RegisterPage> {
     }
     // catch any errors..
     catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(
-        content: Text("${AppLocalizations.of(context, 'error', listen: false)}: $e"),
-        backgroundColor: context.info,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "${AppLocalizations.of(context, 'error', listen: false)}: $e",
+          ),
+          backgroundColor: context.info,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       extendBodyBehindAppBar: true,
       body: Center(
         child: SingleChildScrollView(
@@ -141,10 +142,13 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 child: Text(
                   AppLocalizations.of(context, 'signup_button'),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
 
               // go to login page to log in

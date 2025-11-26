@@ -32,12 +32,14 @@ class _LoginPageState extends State<LoginPage> {
     }
     // catch any errors
     catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(
-        content: Text("${AppLocalizations.of(context, 'error', listen: false)}: $e"),
-        backgroundColor: context.info,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "${AppLocalizations.of(context, 'error', listen: false)}: $e",
+          ),
+          backgroundColor: context.info,
+        ),
+      );
     }
   }
 
@@ -59,7 +61,7 @@ class _LoginPageState extends State<LoginPage> {
                 color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(height: 24),
-              
+
               // title
               Text(
                 AppLocalizations.of(context, 'login_title'),
@@ -73,7 +75,9 @@ class _LoginPageState extends State<LoginPage> {
                 AppLocalizations.of(context, 'login_subtitle'),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(height: 48),
@@ -103,7 +107,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 obscureText: true,
               ),
-              
+
               // forgot password
               Align(
                 alignment: Alignment.centerRight,
@@ -127,7 +131,10 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 child: Text(
                   AppLocalizations.of(context, 'login_button'),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
 

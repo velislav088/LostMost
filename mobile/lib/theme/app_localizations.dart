@@ -18,7 +18,7 @@ class AppLocalizations {
     'error': 'Error',
     'success': 'Success',
     'loading': 'Loading...',
-    
+
     // Navbar
     'nav_home': 'Home',
     'nav_search': 'Search',
