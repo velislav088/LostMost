@@ -23,6 +23,9 @@ void main() {
     mockAuth = MockGoTrueClient();
     when(() => mockClient.auth).thenReturn(mockAuth);
 
+    // Register fallback value for UserAttributes.
+    registerFallbackValue(UserAttributes());
+
     authService = AuthService(client: mockClient);
   });
 
@@ -128,5 +131,27 @@ void main() {
 
     final email = authService.getCurrentUserEmail();
     expect(email, isNull);
+  });
+
+  test('updatePassword calls Supabase updateUser', () async {
+    when(
+      () => mockAuth.updateUser(any()),
+    ).thenAnswer((_) async => throw Exception('Not implemented in test'));
+
+    try {
+      await authService.updatePassword('newpass');
+    } catch (_) {
+      // Expected to throw in test.
+    }
+
+    verify(() => mockAuth.updateUser(any())).called(1);
+  });
+
+  test('resetPasswordForEmail calls Supabase resetPasswordForEmail', () async {
+    when(() => mockAuth.resetPasswordForEmail(any())).thenAnswer((_) async {});
+
+    await authService.resetPasswordForEmail('reset@test.com');
+
+    verify(() => mockAuth.resetPasswordForEmail('reset@test.com')).called(1);
   });
 }
