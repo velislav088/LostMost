@@ -11,6 +11,9 @@ import 'package:mobile/theme/theme_provider.dart';
 import 'package:mobile/widgets/navigation_scaffold.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:mobile/theme/settings_provider.dart';
+import 'package:mobile/auth/auth_service.dart';
 import 'package:go_router/go_router.dart';
 
 void main() async {
@@ -26,8 +29,12 @@ void main() async {
   await Supabase.initialize(anonKey: supabaseAnonKey, url: supabaseUrl);
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        Provider(create: (_) => AuthService()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -82,6 +89,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // get theme (light/dark)
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final settingsProvider = Provider.of<SettingsProvider>(context);
 
     // use go_router and themes
     return MaterialApp.router(
@@ -90,6 +98,16 @@ class MyApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: themeProvider.themeMode,
       routerConfig: _router,
+      locale: settingsProvider.locale,
+      supportedLocales: const [
+        Locale('en'),
+        Locale('bg'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
     );
   }
 }
