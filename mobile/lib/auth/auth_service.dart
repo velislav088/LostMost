@@ -38,4 +38,16 @@ class AuthService {
     final user = session?.user;
     return user?.email;
   }
+
+  // Update password
+  Future<UserResponse> updatePassword(String newPassword) async {
+    return await _supabase.auth.updateUser(
+      UserAttributes(password: newPassword),
+    );
+  }
+
+  // Reset password for email
+  Future<void> resetPasswordForEmail(String email) async {
+    await _supabase.auth.resetPasswordForEmail(email);
+  }
 }
