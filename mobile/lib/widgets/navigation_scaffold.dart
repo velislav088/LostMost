@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:mobile/theme/app_theme.dart';
+import 'package:mobile/theme/app_localizations.dart';
 
 class NavigationScaffold extends StatelessWidget {
   // Create StatefulNavigationShell settings to route the navbar properly.
@@ -29,10 +30,10 @@ class NavigationScaffold extends StatelessWidget {
             gap: 8,
             onTabChange: (index) => _onTabChange(context, index),
             padding: EdgeInsets.all(16),
-            tabs: const [
-              GButton(icon: Icons.home, text: 'Home'),
-              GButton(icon: Icons.search, text: 'Search'),
-              GButton(icon: Icons.settings, text: 'Settings'),
+            tabs: [
+              GButton(icon: Icons.home, text: AppLocalizations.of(context, 'nav_home')),
+              GButton(icon: Icons.search, text: AppLocalizations.of(context, 'nav_search')),
+              GButton(icon: Icons.settings, text: AppLocalizations.of(context, 'nav_settings')),
             ],
           ),
         ),
