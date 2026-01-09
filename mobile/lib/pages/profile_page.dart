@@ -26,6 +26,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _calculateCacheSize();
   }
 
+  // calculate app cache
   Future<void> _calculateCacheSize() async {
     try {
       final tempDir = await getTemporaryDirectory();
@@ -51,6 +52,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  // Format bytes into readable format
   String _formatBytes(int bytes) {
     if (bytes <= 0) return "0 B";
     const suffixes = ["B", "KB", "MB", "GB", "TB"];
@@ -64,6 +66,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return "${value.toStringAsFixed(1)} ${suffixes[suffixIndex]}";
   }
 
+  // clear cache
   Future<void> _clearCache() async {
     try {
       final tempDir = await getTemporaryDirectory();

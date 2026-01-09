@@ -14,6 +14,7 @@ class MockSession extends Mock implements Session {}
 class MockUser extends Mock implements User {}
 
 void main() {
+  // Setup mock data
   late MockSupabaseClient mockClient;
   late MockGoTrueClient mockAuth;
   late AuthService authService;

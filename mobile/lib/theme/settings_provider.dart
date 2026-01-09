@@ -15,6 +15,7 @@ class SettingsProvider extends ChangeNotifier {
     _loadSettings();
   }
 
+  // get user preference
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final localeCode = prefs.getString(_localeKey) ?? 'en';
@@ -23,6 +24,7 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Save user preference locally
   Future<void> setLocale(Locale locale) async {
     if (_locale == locale) return;
     _locale = locale;

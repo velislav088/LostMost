@@ -64,6 +64,7 @@ class MQTTService {
         final payloadString = MqttPublishPayload.bytesToStringAsString(payload);
         final data = jsonDecode(payloadString);
 
+        // check if any devices are found
         if (data['devices'] != null && data['devices'].isNotEmpty) {
           final rssiValue = data['devices'][0]['rssi'].toString();
           _rssiController.add("RSSI: $rssiValue");
