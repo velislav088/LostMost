@@ -39,6 +39,14 @@ class AuthService {
     return user?.email;
   }
 
+  // Expose auth state change stream
+  // Wrap Supabase's stream so UI can be dependant on AuthService.
+  Stream get authStateChanges => _supabase.auth.onAuthStateChange;
+
+  // Convenience stream of sessions only
+  Stream<dynamic> get authSessions =>
+      _supabase.auth.onAuthStateChange.map((e) => e.session);
+
   // Update password
   Future<UserResponse> updatePassword(String newPassword) async {
     return await _supabase.auth.updateUser(
