@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/mqtt/mqtt_service.dart';
 import 'package:mobile/theme/app_localizations.dart';
 import 'package:mobile/theme/app_theme.dart';
+import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,12 +13,13 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   // get mqtt service
-  final MQTTService _rssiService = MQTTService();
+  late final MQTTService _rssiService;
   String? _rssi;
 
   @override
   void initState() {
     super.initState();
+    _rssiService = Provider.of<MQTTService>(context, listen: false);
     _initializeMQTT();
   }
 
@@ -56,9 +58,16 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // Parse RSSI output like integer
+  int? _parseRssi(String s) {
+    final match = RegExp(r'-?\d+').firstMatch(s);
+    if (match == null) return null;
+    return int.tryParse(match.group(0)!);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final rssiValue = _rssi != null ? int.tryParse(_rssi!) : null;
+    final rssiValue = _rssi != null ? _parseRssi(_rssi!) : null;
 
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context, 'home_title'))),

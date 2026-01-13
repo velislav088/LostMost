@@ -14,6 +14,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:mobile/theme/settings_provider.dart';
 import 'package:mobile/auth/auth_service.dart';
+import 'package:mobile/mqtt/mqtt_service.dart';
 import 'package:go_router/go_router.dart';
 
 void main() async {
@@ -33,6 +34,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        Provider(create: (_) => MQTTService()),
         Provider(create: (_) => AuthService()),
       ],
       child: const MyApp(),
