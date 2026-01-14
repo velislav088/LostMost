@@ -4,12 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum ThemeOption { system, light, dark }
 
 class ThemeProvider extends ChangeNotifier {
-  ThemeOption _themeOption = ThemeOption.system;
-  static const String _themeKey = 'theme_option';
-
   ThemeProvider() {
     _loadThemePreference();
   }
+  ThemeOption _themeOption = ThemeOption.system;
+  static const String _themeKey = 'theme_option';
 
   ThemeOption get themeOption => _themeOption;
 

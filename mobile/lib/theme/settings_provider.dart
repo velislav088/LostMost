@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsProvider extends ChangeNotifier {
+
+  SettingsProvider() {
+    _loadSettings();
+  }
   static const String _localeKey = 'locale';
   static const String _dataSaverKey = 'data_saver';
 
@@ -10,10 +14,6 @@ class SettingsProvider extends ChangeNotifier {
 
   Locale get locale => _locale;
   bool get dataSaverEnabled => _dataSaverEnabled;
-
-  SettingsProvider() {
-    _loadSettings();
-  }
 
   // get user preference
   Future<void> _loadSettings() async {
@@ -26,15 +26,20 @@ class SettingsProvider extends ChangeNotifier {
 
   // Save user preference locally
   Future<void> setLocale(Locale locale) async {
-    if (_locale == locale) return;
+    if (_locale == locale) {
+      return;
+    }
     _locale = locale;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_localeKey, locale.languageCode);
     notifyListeners();
   }
 
+  /// Sets data saver preference
   Future<void> setDataSaver(bool enabled) async {
-    if (_dataSaverEnabled == enabled) return;
+    if (_dataSaverEnabled == enabled) {
+      return;
+    }
     _dataSaverEnabled = enabled;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_dataSaverKey, enabled);
