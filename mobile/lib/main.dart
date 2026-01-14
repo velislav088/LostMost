@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile/auth/auth_gate.dart';
+import 'package:mobile/auth/auth_service.dart';
+import 'package:mobile/mqtt/mqtt_service.dart';
 import 'package:mobile/pages/home_page.dart';
 import 'package:mobile/pages/login_page.dart';
 import 'package:mobile/pages/profile_page.dart';
 import 'package:mobile/pages/register_page.dart';
 import 'package:mobile/pages/search_page.dart';
 import 'package:mobile/theme/app_theme.dart';
+import 'package:mobile/theme/settings_provider.dart';
 import 'package:mobile/theme/theme_provider.dart';
 import 'package:mobile/widgets/navigation_scaffold.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:mobile/theme/settings_provider.dart';
-import 'package:mobile/auth/auth_service.dart';
-import 'package:mobile/mqtt/mqtt_service.dart';
-import 'package:go_router/go_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,7 +26,7 @@ void main() async {
   final supabaseAnonKey = dotenv.get('SUPABASE_ANON_KEY');
   final supabaseUrl = dotenv.get('SUPABASE_URL');
 
-  // supabase setup
+  // Supabase setup
   await Supabase.initialize(anonKey: supabaseAnonKey, url: supabaseUrl);
 
   runApp(
