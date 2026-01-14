@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
-import 'package:mobile/auth/auth_service.dart';
 import 'package:mobile/auth/auth_gate.dart';
+import 'package:mobile/auth/auth_service.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
 
 class MockAuthService extends Mock implements AuthService {}
 
 class FakeAuthEvent {
-  final dynamic session;
   FakeAuthEvent(this.session);
+  final dynamic session;
 }
 
 void main() {
@@ -33,8 +33,8 @@ void main() {
         value: mockAuth,
         child: MaterialApp(
           home: AuthGate(
-            onAuthChange: (auth) {
-              result = auth;
+            onAuthChange: ({required bool isAuthenticated}) {
+              result = isAuthenticated;
             },
           ),
         ),
@@ -62,8 +62,8 @@ void main() {
         value: mockAuth,
         child: MaterialApp(
           home: AuthGate(
-            onAuthChange: (auth) {
-              result = auth;
+            onAuthChange: ({required bool isAuthenticated}) {
+              result = isAuthenticated;
             },
           ),
         ),

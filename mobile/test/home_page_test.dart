@@ -1,14 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
 import 'package:mobile/mqtt/mqtt_service.dart';
 import 'package:mobile/pages/home_page.dart';
 import 'package:mobile/theme/settings_provider.dart';
 import 'package:mobile/theme/theme_provider.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 
 class MockMQTTService extends Mock implements MQTTService {}
 
@@ -52,9 +52,7 @@ void main() {
     );
   }
 
-  testWidgets('HomePage shows RSSI updates from MQTTService', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('HomePage shows RSSI updates from MQTTService', (tester) async {
     await tester.pumpWidget(createWidgetUnderTest(const HomePage()));
     await tester.pumpAndSettle();
 
