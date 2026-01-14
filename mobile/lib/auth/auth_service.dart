@@ -5,27 +5,17 @@ class AuthService {
   // fall back to the default global instance in production.
   final SupabaseClient _supabase;
 
+  /// Creates an AuthService with optional custom Supabase client.
   AuthService({SupabaseClient? client})
     : _supabase = client ?? Supabase.instance.client;
 
-  // Sign in with email and password
-  Future<AuthResponse> signInWithEmailPassword(
-    String email,
-    String password,
-  ) async {
-    return await _supabase.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
-  }
+  /// Sign in with email and password
+  Future<AuthResponse> signInWithEmailPassword(String email, String password) =>
+      _supabase.auth.signInWithPassword(email: email, password: password);
 
-  // Sign up with email and password
-  Future<AuthResponse> signUpWithEmailPassword(
-    String email,
-    String password,
-  ) async {
-    return await _supabase.auth.signUp(email: email, password: password);
-  }
+  /// Sign up with email and password
+  Future<AuthResponse> signUpWithEmailPassword(String email, String password) =>
+      _supabase.auth.signUp(email: email, password: password);
 
   // Sign out
   Future<void> signOut() async {
@@ -47,14 +37,11 @@ class AuthService {
   Stream<dynamic> get authSessions =>
       _supabase.auth.onAuthStateChange.map((e) => e.session);
 
-  // Update password
-  Future<UserResponse> updatePassword(String newPassword) async {
-    return await _supabase.auth.updateUser(
-      UserAttributes(password: newPassword),
-    );
-  }
+  /// Update password
+  Future<UserResponse> updatePassword(String newPassword) =>
+      _supabase.auth.updateUser(UserAttributes(password: newPassword));
 
-  // Reset password for email
+  /// Reset password for email
   Future<void> resetPasswordForEmail(String email) async {
     await _supabase.auth.resetPasswordForEmail(email);
   }

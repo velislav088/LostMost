@@ -15,10 +15,12 @@ import 'package:mobile/auth/auth_service.dart';
 import 'package:provider/provider.dart';
 
 class AuthGate extends StatelessWidget {
-  // callback for auth status changes (used for testing)
-  final void Function(bool authenticated)? onAuthChange;
-
+  /// Gate that routes based on authentication status
+  /// Optional callback for testing authentication changes
   const AuthGate({super.key, this.onAuthChange});
+
+  /// Callback for auth status changes (used for testing)
+  final void Function({required bool isAuthenticated})? onAuthChange;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +46,7 @@ class AuthGate extends StatelessWidget {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           // If test provides an observer, use it and don't navigate.
           if (onAuthChange != null) {
-            onAuthChange!(session != null);
+            onAuthChange!(isAuthenticated: session != null);
             return;
           }
 
