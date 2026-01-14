@@ -12,7 +12,7 @@ class MQTTService {
 
   // default broker settings (for now)
   static const int mqttPort = 8883;
-  static const String deviceId = "esp32_001";
+  static const String deviceId = 'esp32_001';
 
   late MqttServerClient _client;
   final _rssiController = StreamController<String>.broadcast();
@@ -20,7 +20,7 @@ class MQTTService {
 
   Timer? _scanTimer;
 
-  // setup connection
+  /// Sets up MQTT connection and starts listening for updates
   Future<void> initialize() async {
     _client = MqttServerClient.withPort(
       mqttServer,
@@ -31,63 +31,63 @@ class MQTTService {
     _client.keepAlivePeriod = 20;
 
     final connMsg = MqttConnectMessage()
-        .withClientIdentifier(
-          'flutter_client_${DateTime.now().millisecondsSinceEpoch}',
-        )
-        .authenticateAs(mqttUsername, mqttPassword)
-        .withWillQos(MqttQos.atMostOnce);
+      ..withClientIdentifier(
+        'flutter_client_${DateTime.now().millisecondsSinceEpoch}',
+      )
+      ..authenticateAs(mqttUsername, mqttPassword)
+      ..withWillQos(MqttQos.atMostOnce);
 
     _client.connectionMessage = connMsg;
 
     // attempt to connect to client..
     try {
       await _client.connect();
-    }
-    // catch any errors
-    catch (e) {
+    } catch (e) {
       _client.disconnect();
-      return;
+      rethrow;
     }
 
     // broker topics
-    final resultsTopic = "ble/scanner/$deviceId/results";
-    final commandsTopic = "ble/scanner/$deviceId/commands";
+    const resultsTopic = 'ble/scanner/$deviceId/results';
+    const commandsTopic = 'ble/scanner/$deviceId/commands';
 
     // subscribe to broker
     _client.subscribe(resultsTopic, MqttQos.atMostOnce);
 
-    _client.updates!.listen((List<MqttReceivedMessage<MqttMessage?>>? c) {
-      if (c == null) return;
+    final updates = _client.updates;
+    if (updates == null) {
+      return;
+    }
 
-      for (var message in c) {
+    updates.listen((c) {
+      for (final message in c) {
         final payload = (message.payload as MqttPublishMessage).payload.message;
         final payloadString = MqttPublishPayload.bytesToStringAsString(payload);
-        final data = jsonDecode(payloadString);
+        final data = jsonDecode(payloadString) as Map<String, dynamic>;
 
         // check if any devices are found
-        if (data['devices'] != null && data['devices'].isNotEmpty) {
-          final rssiValue = data['devices'][0]['rssi'].toString();
-          _rssiController.add("RSSI: $rssiValue");
+        final devices = data['devices'] as List<dynamic>?;
+        if (devices != null && devices.isNotEmpty) {
+          final rssiValue = devices[0]['rssi'].toString();
+          _rssiController.add('RSSI: $rssiValue');
         } else {
-          _rssiController.add("No devices found");
+          _rssiController.add('No devices found');
         }
       }
     });
 
-    // Send topic every 10 seconds
+    // Send request every 10 seconds
     _scanTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      final requestId = "flutter_${DateTime.now().millisecondsSinceEpoch}";
+      final requestId = 'flutter_${DateTime.now().millisecondsSinceEpoch}';
       final scanMessage = jsonEncode({
-        "action": "scan",
-        "requestId": requestId,
+        'action': 'scan',
+        'requestId': requestId,
       });
-      final builder = MqttClientPayloadBuilder();
-      builder.addUTF8String(scanMessage);
-      _client.publishMessage(
-        commandsTopic,
-        MqttQos.atMostOnce,
-        builder.payload!,
-      );
+      final builder = MqttClientPayloadBuilder()..addUTF8String(scanMessage);
+      final payload = builder.payload;
+      if (payload != null) {
+        _client.publishMessage(commandsTopic, MqttQos.atMostOnce, payload);
+      }
     });
   }
 
