@@ -21,12 +21,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // load environment variables
-  await dotenv.load(fileName: "assets/.env");
+  await dotenv.load(fileName: 'assets/.env');
 
   final supabaseAnonKey = dotenv.get('SUPABASE_ANON_KEY');
   final supabaseUrl = dotenv.get('SUPABASE_URL');
 
-  // Supabase setup
+  // supabase setup
   await Supabase.initialize(anonKey: supabaseAnonKey, url: supabaseUrl);
 
   runApp(
