@@ -39,125 +39,125 @@ class AppColors {
 class AppTheme {
   /// Light theme for the application
   static ThemeData get lightTheme => ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.light,
-      scaffoldBackgroundColor: AppColors.lightBg,
-      colorScheme: const ColorScheme.light(
-        surface: AppColors.lightBg,
-        onSurface: AppColors.lightText,
-        primary: AppColors.lightPrimary,
-        secondary: AppColors.lightSecondary,
-        onSecondary: AppColors.lightBgLight,
-        error: AppColors.lightDanger,
-        outline: AppColors.lightBorder,
+    useMaterial3: true,
+    brightness: Brightness.light,
+    scaffoldBackgroundColor: AppColors.lightBg,
+    colorScheme: const ColorScheme.light(
+      surface: AppColors.lightBg,
+      onSurface: AppColors.lightText,
+      primary: AppColors.lightPrimary,
+      secondary: AppColors.lightSecondary,
+      onSecondary: AppColors.lightBgLight,
+      error: AppColors.lightDanger,
+      outline: AppColors.lightBorder,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.lightBgLight,
+      foregroundColor: AppColors.lightText,
+      elevation: 0,
+      centerTitle: false,
+    ),
+    cardTheme: CardThemeData(
+      color: AppColors.lightBgLight,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: AppColors.lightBorderMuted),
       ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.lightBgLight,
-        foregroundColor: AppColors.lightText,
-        elevation: 0,
-        centerTitle: false,
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.lightPrimary,
+        foregroundColor: AppColors.lightBgLight,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
-      cardTheme: CardThemeData(
-        color: AppColors.lightBgLight,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: AppColors.lightBorderMuted),
-        ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: AppColors.lightPrimary),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.lightBgLight,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.lightBorder),
       ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.lightPrimary,
-          foregroundColor: AppColors.lightBgLight,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.lightBorderMuted),
       ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: AppColors.lightPrimary),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.lightPrimary, width: 2),
       ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: AppColors.lightBgLight,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.lightBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.lightBorderMuted),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.lightPrimary, width: 2),
-        ),
-      ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: AppColors.lightBgLight,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      ),
-    );
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: AppColors.lightBgLight,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
+  );
 
   /// Dark theme for the application
   static ThemeData get darkTheme => ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: AppColors.darkBg,
-      colorScheme: const ColorScheme.dark(
-        surface: AppColors.darkBg,
-        onSurface: AppColors.darkText,
-        primary: AppColors.darkPrimary,
-        onPrimary: AppColors.darkBgDark,
-        secondary: AppColors.darkSecondary,
-        onSecondary: AppColors.darkBgDark,
-        error: AppColors.darkDanger,
-        onError: AppColors.darkBgDark,
-        outline: AppColors.darkBorder,
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: AppColors.darkBg,
+    colorScheme: const ColorScheme.dark(
+      surface: AppColors.darkBg,
+      onSurface: AppColors.darkText,
+      primary: AppColors.darkPrimary,
+      onPrimary: AppColors.darkBgDark,
+      secondary: AppColors.darkSecondary,
+      onSecondary: AppColors.darkBgDark,
+      error: AppColors.darkDanger,
+      onError: AppColors.darkBgDark,
+      outline: AppColors.darkBorder,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.darkBgLight,
+      foregroundColor: AppColors.darkText,
+      elevation: 0,
+      centerTitle: false,
+    ),
+    cardTheme: CardThemeData(
+      color: AppColors.darkBgLight,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: AppColors.darkBorderMuted),
       ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.darkBgLight,
-        foregroundColor: AppColors.darkText,
-        elevation: 0,
-        centerTitle: false,
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.darkPrimary,
+        foregroundColor: AppColors.darkBgDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
-      cardTheme: CardThemeData(
-        color: AppColors.darkBgLight,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: AppColors.darkBorderMuted),
-        ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: AppColors.darkPrimary),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.darkBgLight,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.darkBorder),
       ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.darkPrimary,
-          foregroundColor: AppColors.darkBgDark,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.darkBorderMuted),
       ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: AppColors.darkPrimary),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.darkPrimary, width: 2),
       ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: AppColors.darkBgLight,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.darkBorder),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.darkBorderMuted),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.darkPrimary, width: 2),
-        ),
-      ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: AppColors.darkBgLight,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      ),
-    );
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: AppColors.darkBgLight,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
+  );
 }
 
 // Extension to get colors from context
