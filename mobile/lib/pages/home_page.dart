@@ -61,7 +61,9 @@ class _HomePageState extends State<HomePage> {
   // Parse RSSI output like integer
   int? _parseRssi(String s) {
     final match = RegExp(r'-?\d+').firstMatch(s);
-    if (match == null) return null;
+    if (match == null) {
+      return null;
+    }
     return int.tryParse(match.group(0)!);
   }
 

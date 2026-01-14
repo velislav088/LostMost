@@ -1,14 +1,15 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/auth/auth_service.dart';
-import 'package:mobile/theme/theme_provider.dart';
-import 'package:mobile/theme/settings_provider.dart';
-import 'package:mobile/theme/app_theme.dart';
 import 'package:mobile/theme/app_localizations.dart';
+import 'package:mobile/theme/app_theme.dart';
+import 'package:mobile/theme/settings_provider.dart';
+import 'package:mobile/theme/theme_provider.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:path_provider/path_provider.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -18,7 +19,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  String _cacheSize = "Calculating...";
+  String _cacheSize = 'Calculating...';
 
   @override
   void initState() {
@@ -30,40 +31,46 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _calculateCacheSize() async {
     try {
       final tempDir = await getTemporaryDirectory();
-      int totalSize = 0;
+      var totalSize = 0;
       if (tempDir.existsSync()) {
-        tempDir.listSync(recursive: true, followLinks: false).forEach((
-          FileSystemEntity entity,
-        ) {
+        tempDir.listSync(recursive: true, followLinks: false).forEach((entity) {
           if (entity is File) {
             totalSize += entity.lengthSync();
           }
         });
       }
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _cacheSize = _formatBytes(totalSize);
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       setState(() {
-        _cacheSize = "Unknown";
+        _cacheSize = 'Unknown';
       });
     }
   }
 
   // Format bytes into readable format
   String _formatBytes(int bytes) {
-    if (bytes <= 0) return "0 B";
-    const suffixes = ["B", "KB", "MB", "GB", "TB"];
-    if (bytes < 1024) return "$bytes B";
-    double value = bytes / 1.0;
-    int suffixIndex = 0;
+    if (bytes <= 0) {
+      return '0 B';
+    }
+    const suffixes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    if (bytes < 1024) {
+      return '$bytes B';
+    }
+    var value = bytes / 1.0;
+    var suffixIndex = 0;
     while (value >= 1024 && suffixIndex < suffixes.length - 1) {
       value /= 1024;
       suffixIndex++;
     }
-    return "${value.toStringAsFixed(1)} ${suffixes[suffixIndex]}";
+    return '${value.toStringAsFixed(1)} ${suffixes[suffixIndex]}';
   }
 
   // clear cache
@@ -74,7 +81,9 @@ class _ProfilePageState extends State<ProfilePage> {
         tempDir.deleteSync(recursive: true);
       }
       await _calculateCacheSize();
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Cache cleared'),
@@ -82,7 +91,9 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       );
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to clear cache: $e'),
@@ -93,45 +104,49 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // confirm logout
-  void confirmLogout() async {
+  Future<void> confirmLogout() async {
     // get user choice
     final logoutDialog = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Log out"),
-        content: const Text("Are you sure you want to log out?"),
+        title: const Text('Log out'),
+        content: const Text('Are you sure you want to log out?'),
         actions: [
           TextButton(
             // cancel
             onPressed: () => context.pop(false),
-            child: const Text("Cancel"),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             // confirm
             onPressed: () => context.pop(true),
-            child: const Text("Logout"),
+            child: const Text('Logout'),
           ),
         ],
       ),
     );
 
     if (logoutDialog == true) {
-      logout();
+      await logout();
     }
   }
 
-  // logout
-  void logout() async {
+  /// Logout the user
+  Future<void> logout() async {
     final authService = Provider.of<AuthService>(context, listen: false);
     await authService.signOut();
-    if (!mounted) return; // guard the use with a 'mounted' check
+    if (!mounted) {
+      return;
+    }
     context.go('/login');
   }
 
   Future<void> _launchGitHub() async {
-    final Uri url = Uri.parse('https://github.com/velislav088/LostMost');
+    final url = Uri.parse('https://github.com/velislav088/LostMost');
     if (!await launchUrl(url)) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Could not launch GitHub URL'),
@@ -150,16 +165,15 @@ class _ProfilePageState extends State<ProfilePage> {
     final settingsProvider = Provider.of<SettingsProvider>(context);
 
     // Localization helper
-    String t(String key, {bool listen = true}) {
-      return AppLocalizations.of(context, key, listen: listen);
-    }
+    String t(String key, {bool listen = true}) =>
+        AppLocalizations.of(context, key, listen: listen);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(t('profile_title')),
         actions: [
           // logout button
-          IconButton(onPressed: confirmLogout, icon: Icon(Icons.logout)),
+          IconButton(onPressed: confirmLogout, icon: const Icon(Icons.logout)),
         ],
       ),
       body: ListView(
@@ -229,7 +243,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                       await authService.updatePassword(
                                         newPassword,
                                       );
-                                      if (!context.mounted) return;
+                                      if (!context.mounted) {
+                                        return;
+                                      }
                                       context.pop();
                                       ScaffoldMessenger.of(
                                         context,
@@ -245,14 +261,16 @@ class _ProfilePageState extends State<ProfilePage> {
                                         ),
                                       );
                                     } catch (e) {
-                                      if (!context.mounted) return;
+                                      if (!context.mounted) {
+                                        return;
+                                      }
                                       context.go('/profile');
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                            "${t('password_update_failed', listen: false)}: $e",
+                                            '${t('password_update_failed', listen: false)}: $e',
                                           ),
                                           backgroundColor: context.info,
                                         ),
@@ -317,7 +335,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             child: Text(t('dark')),
                           ),
                         ],
-                        onChanged: (ThemeOption? value) {
+                        onChanged: (value) {
                           if (value != null) {
                             themeProvider.setThemeOption(value);
                           }
@@ -376,7 +394,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             child: Text('Български'),
                           ),
                         ],
-                        onChanged: (Locale? newValue) {
+                        onChanged: (newValue) {
                           if (newValue != null) {
                             settingsProvider.setLocale(newValue);
                           }
@@ -417,9 +435,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ).textTheme.bodySmall?.copyWith(color: context.textMuted),
                     ),
                     value: settingsProvider.dataSaverEnabled,
-                    onChanged: (bool value) {
-                      settingsProvider.setDataSaver(value);
-                    },
+                    onChanged: settingsProvider.setDataSaver,
                     secondary: Icon(Icons.data_usage, color: context.textMuted),
                   ),
                   const Divider(),
@@ -550,26 +566,23 @@ class _ProfilePageState extends State<ProfilePage> {
 }
 
 class _ColorChip extends StatelessWidget {
+  const _ColorChip({required this.label, required this.color});
   final String label;
   final Color color;
 
-  const _ColorChip({required this.label, required this.color});
-
   @override
-  Widget build(BuildContext context) {
-    return Chip(
-      avatar: Container(
-        width: 20,
-        height: 20,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(color: context.border, width: 1),
-        ),
+  Widget build(BuildContext context) => Chip(
+    avatar: Container(
+      width: 20,
+      height: 20,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: context.border),
       ),
-      label: Text(label),
-      backgroundColor: context.bgLight,
-      side: BorderSide(color: context.borderMuted),
-    );
-  }
+    ),
+    label: Text(label),
+    backgroundColor: context.bgLight,
+    side: BorderSide(color: context.borderMuted),
+  );
 }
