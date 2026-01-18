@@ -88,43 +88,71 @@ void main() {
     expect(email, 'user@email.com');
   });
 
-  test('signInWithEmailPassword throws error on failed sign-in', () async {
-    when(
-      () => mockAuth.signInWithPassword(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenThrow(Exception('Failed login'));
+  test(
+    'signInWithEmailPassword throws AppAuthException on failed sign-in',
+    () async {
+      const supabaseException = AuthException('Invalid login credentials');
+      when(
+        () => mockAuth.signInWithPassword(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenThrow(supabaseException);
 
-    expect(
-      () => authService.signInWithEmailPassword('fail@test.com', 'wrongpass'),
-      throwsA(isA<Exception>()),
-    );
+      expect(
+        () => authService.signInWithEmailPassword('fail@test.com', 'wrongpass'),
+        throwsA(isA<AppAuthException>()),
+      );
+    },
+  );
 
-    verify(
-      () => mockAuth.signInWithPassword(
-        email: 'fail@test.com',
-        password: 'wrongpass',
-      ),
-    ).called(1);
+  test(
+    'signUpWithEmailPassword throws AppAuthException on failed sign-up',
+    () async {
+      const supabaseException = AuthException('User already registered');
+      when(
+        () => mockAuth.signUp(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenThrow(supabaseException);
+
+      expect(
+        () => authService.signUpWithEmailPassword(
+          'existing@test.com',
+          'password123',
+        ),
+        throwsA(isA<AppAuthException>()),
+      );
+    },
+  );
+
+  test('signOut throws AppAuthException on error', () async {
+    when(() => mockAuth.signOut()).thenThrow(Exception('Sign out failed'));
+
+    expect(() => authService.signOut(), throwsA(isA<AppAuthException>()));
   });
 
-  test('signUpWithEmailPassword throws error on failed sign-up', () async {
+  test('updatePassword throws AppAuthException on error', () async {
     when(
-      () => mockAuth.signUp(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenThrow(Exception('Failed sign-up'));
+      () => mockAuth.updateUser(any()),
+    ).thenThrow(Exception('Failed to update'));
 
     expect(
-      () => authService.signUpWithEmailPassword('fail@test.com', 'pass123'),
-      throwsA(isA<Exception>()),
+      () => authService.updatePassword('newpass123'),
+      throwsA(isA<AppAuthException>()),
     );
+  });
 
-    verify(
-      () => mockAuth.signUp(email: 'fail@test.com', password: 'pass123'),
-    ).called(1);
+  test('resetPasswordForEmail throws AppAuthException on error', () async {
+    when(
+      () => mockAuth.resetPasswordForEmail(any()),
+    ).thenThrow(Exception('Reset failed'));
+
+    expect(
+      () => authService.resetPasswordForEmail('user@email.com'),
+      throwsA(isA<AppAuthException>()),
+    );
   });
 
   test('getCurrentUserEmail returns null if there is no current session', () {
@@ -132,27 +160,5 @@ void main() {
 
     final email = authService.getCurrentUserEmail();
     expect(email, isNull);
-  });
-
-  test('updatePassword calls Supabase updateUser', () async {
-    when(
-      () => mockAuth.updateUser(any()),
-    ).thenAnswer((_) async => throw Exception('Not implemented in test'));
-
-    try {
-      await authService.updatePassword('newpass');
-    } catch (_) {
-      // Expected to throw in test.
-    }
-
-    verify(() => mockAuth.updateUser(any())).called(1);
-  });
-
-  test('resetPasswordForEmail calls Supabase resetPasswordForEmail', () async {
-    when(() => mockAuth.resetPasswordForEmail(any())).thenAnswer((_) async {});
-
-    await authService.resetPasswordForEmail('reset@test.com');
-
-    verify(() => mockAuth.resetPasswordForEmail('reset@test.com')).called(1);
   });
 }

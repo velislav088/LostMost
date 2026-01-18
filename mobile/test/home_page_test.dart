@@ -65,4 +65,19 @@ void main() {
     expect(find.text('RSSI: -50'), findsOneWidget);
     expect(find.text('Close'), findsOneWidget);
   });
+
+  testWidgets('HomePage shows error message when MQTT fails', (tester) async {
+    await tester.pumpWidget(createWidgetUnderTest(const HomePage()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Connecting...'), findsOneWidget);
+
+    // emit error
+    controller.addError('MQTT connection failed');
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.error_outline), findsOneWidget);
+    expect(find.text('Error'), findsOneWidget);
+    expect(find.text('MQTT connection failed'), findsOneWidget);
+  });
 }
