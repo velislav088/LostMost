@@ -1,5 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+class AppAuthException implements Exception {
+  AppAuthException(this.message, {this.code});
+  final String message;
+  final String? code;
+
+  @override
+  String toString() => message;
+}
+
 class AuthService {
   // Allow injecting a custom Supabase client (used for testing);
   // fall back to the default global instance in production.
@@ -10,23 +19,56 @@ class AuthService {
     : _supabase = client ?? Supabase.instance.client;
 
   /// Sign in with email and password
-  Future<AuthResponse> signInWithEmailPassword(String email, String password) =>
-      _supabase.auth.signInWithPassword(email: email, password: password);
+  Future<AuthResponse> signInWithEmailPassword(
+    String email,
+    String password,
+  ) async {
+    try {
+      return await _supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+    } on AuthException catch (e) {
+      throw AppAuthException(_parseAuthError(e.message), code: e.message);
+    } catch (e) {
+      throw AppAuthException('Failed to sign in: ${e.toString()}');
+    }
+  }
 
   /// Sign up with email and password
-  Future<AuthResponse> signUpWithEmailPassword(String email, String password) =>
-      _supabase.auth.signUp(email: email, password: password);
+  Future<AuthResponse> signUpWithEmailPassword(
+    String email,
+    String password,
+  ) async {
+    try {
+      return await _supabase.auth.signUp(email: email, password: password);
+    } on AuthException catch (e) {
+      throw AppAuthException(_parseAuthError(e.message), code: e.message);
+    } catch (e) {
+      throw AppAuthException('Failed to sign up: ${e.toString()}');
+    }
+  }
 
   // Sign out
   Future<void> signOut() async {
-    await _supabase.auth.signOut();
+    try {
+      await _supabase.auth.signOut();
+    } catch (e) {
+      throw AppAuthException('Failed to sign out: ${e.toString()}');
+    }
   }
 
   // Get user email
   String? getCurrentUserEmail() {
-    final session = _supabase.auth.currentSession;
-    final user = session?.user;
-    return user?.email;
+    try {
+      final session = _supabase.auth.currentSession;
+      final user = session?.user;
+      return user?.email;
+    } catch (e) {
+      throw AppAuthException(
+        'Failed to get current user email: ${e.toString()}',
+      );
+    }
   }
 
   // Expose auth state change stream
@@ -38,11 +80,38 @@ class AuthService {
       _supabase.auth.onAuthStateChange.map((e) => e.session);
 
   /// Update password
-  Future<UserResponse> updatePassword(String newPassword) =>
-      _supabase.auth.updateUser(UserAttributes(password: newPassword));
+  Future<UserResponse> updatePassword(String newPassword) async {
+    try {
+      return await _supabase.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+    } catch (e) {
+      throw AppAuthException('Failed to update password: ${e.toString()}');
+    }
+  }
 
   /// Reset password for email
   Future<void> resetPasswordForEmail(String email) async {
-    await _supabase.auth.resetPasswordForEmail(email);
+    try {
+      await _supabase.auth.resetPasswordForEmail(email);
+    } catch (e) {
+      throw AppAuthException('Failed to send reset email: ${e.toString()}');
+    }
+  }
+
+  /// Parse Supabase auth errors to more normal looking messages
+  String _parseAuthError(String message) {
+    if (message.contains('Invalid login credentials')) {
+      return 'Invalid email or password';
+    } else if (message.contains('User already registered')) {
+      return 'Email is already registered';
+    } else if (message.contains('Password should be at least')) {
+      return 'Password must be at least 6 characters';
+    } else if (message.contains('Unable to validate email')) {
+      return 'Invalid email format';
+    } else if (message.contains('Signup disabled')) {
+      return 'Signups are currently disabled';
+    }
+    return message;
   }
 }

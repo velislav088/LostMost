@@ -22,9 +22,20 @@ class _RegisterPageState extends State<RegisterPage> {
   void signUp() async {
     final authService = Provider.of<AuthService>(context, listen: false);
     // prepare data
-    final email = _emailController.text;
+    final email = _emailController.text.trim();
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
+
+    // validate input
+    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context, 'error', listen: false)),
+          backgroundColor: context.danger,
+        ),
+      );
+      return;
+    }
 
     // check that passwords match
     if (password != confirmPassword) {
@@ -33,7 +44,18 @@ class _RegisterPageState extends State<RegisterPage> {
           content: Text(
             AppLocalizations.of(context, 'passwords_mismatch', listen: false),
           ),
-          backgroundColor: context.info,
+          backgroundColor: context.danger,
+        ),
+      );
+      return;
+    }
+
+    // check password minimum length
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password must be at least 6 characters'),
+          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -48,15 +70,23 @@ class _RegisterPageState extends State<RegisterPage> {
         return;
       }
       context.pop();
-    }
-    // catch any errors..
-    catch (e) {
+    } on AppAuthException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: context.danger),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             "${AppLocalizations.of(context, 'error', listen: false)}: $e",
           ),
-          backgroundColor: context.info,
+          backgroundColor: context.danger,
         ),
       );
     }

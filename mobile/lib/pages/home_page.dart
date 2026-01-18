@@ -15,6 +15,7 @@ class _HomePageState extends State<HomePage> {
   // get mqtt service
   late final MQTTService _rssiService;
   String? _rssi;
+  String? _error;
 
   @override
   void initState() {
@@ -24,12 +25,32 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _initializeMQTT() async {
-    await _rssiService.initialize();
-    _rssiService.rssiStream.listen((value) {
-      setState(() {
-        _rssi = value;
-      });
-    });
+    try {
+      await _rssiService.initialize();
+      _rssiService.rssiStream.listen(
+        (value) {
+          if (mounted) {
+            setState(() {
+              _rssi = value;
+              _error = null;
+            });
+          }
+        },
+        onError: (error) {
+          if (mounted) {
+            setState(() {
+              _error = error.toString();
+            });
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+        });
+      }
+    }
   }
 
   @override
@@ -74,27 +95,66 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context, 'home_title'))),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              _rssi ?? AppLocalizations.of(context, 'connecting'),
-              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            if (rssiValue != null) ...[
-              const SizedBox(height: 16),
-              Text(
-                _getProximityLabel(context, rssiValue),
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: _getProximityColor(context, rssiValue),
-                ),
+        child: _error != null
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 48, color: context.danger),
+                  const SizedBox(height: 16),
+                  Text(
+                    AppLocalizations.of(context, 'error'),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: context.danger,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14, color: context.textMuted),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _error = null;
+                        _rssi = null;
+                      });
+                      _initializeMQTT();
+                    },
+                    child: Text(AppLocalizations.of(context, 'retry')),
+                  ),
+                ],
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _rssi ?? AppLocalizations.of(context, 'connecting'),
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  if (rssiValue != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      _getProximityLabel(context, rssiValue),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: _getProximityColor(context, rssiValue),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ],
-          ],
-        ),
       ),
     );
   }

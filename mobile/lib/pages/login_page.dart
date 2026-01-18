@@ -21,8 +21,19 @@ class _LoginPageState extends State<LoginPage> {
   void login() async {
     final authService = Provider.of<AuthService>(context, listen: false);
     // prepare data
-    final email = _emailController.text;
+    final email = _emailController.text.trim();
     final password = _passwordController.text;
+
+    // validate input
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context, 'error', listen: false)),
+          backgroundColor: context.danger,
+        ),
+      );
+      return;
+    }
 
     // attempt login..
     try {
@@ -31,15 +42,23 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
       context.go('/');
-    }
-    // catch any errors
-    catch (e) {
+    } on AppAuthException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: context.danger),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             "${AppLocalizations.of(context, 'error', listen: false)}: $e",
           ),
-          backgroundColor: context.info,
+          backgroundColor: context.danger,
         ),
       );
     }

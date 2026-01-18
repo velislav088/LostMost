@@ -20,26 +20,64 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // load environment variables
-  await dotenv.load(fileName: 'assets/.env');
+  try {
+    // load environment variables
+    await dotenv.load(fileName: 'assets/.env');
 
-  final supabaseAnonKey = dotenv.get('SUPABASE_ANON_KEY');
-  final supabaseUrl = dotenv.get('SUPABASE_URL');
+    final supabaseAnonKey = dotenv.get('SUPABASE_ANON_KEY');
+    final supabaseUrl = dotenv.get('SUPABASE_URL');
 
-  // supabase setup
-  await Supabase.initialize(anonKey: supabaseAnonKey, url: supabaseUrl);
+    // validate environment variables
+    if (supabaseAnonKey.isEmpty || supabaseUrl.isEmpty) {
+      throw Exception('Missing required environment variables');
+    }
 
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => SettingsProvider()),
-        Provider(create: (_) => MQTTService()),
-        Provider(create: (_) => AuthService()),
-      ],
-      child: const MyApp(),
-    ),
-  );
+    // supabase setup
+    await Supabase.initialize(anonKey: supabaseAnonKey, url: supabaseUrl);
+
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
+          ChangeNotifierProvider(create: (_) => SettingsProvider()),
+          Provider(create: (_) => MQTTService()),
+          Provider(create: (_) => AuthService()),
+        ],
+        child: const MyApp(),
+      ),
+    );
+  } catch (e) {
+    // handle fatal initialization errors
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                const Text(
+                  'Initialization Error',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    e.toString(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 final _router = GoRouter(
