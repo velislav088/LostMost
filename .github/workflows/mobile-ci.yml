@@ -5,15 +5,14 @@ on:
     branches:
       - main
     paths:
-      - 'mobile/**'
-      - '.github/workflows/mobile-ci.yml'
+      - "mobile/**"
+      - ".github/workflows/mobile-ci.yml"
   pull_request:
     branches:
       - main
     paths:
-      - 'mobile/**'
-      - '.github/workflows/mobile-ci.yml'
-
+      - "mobile/**"
+      - ".github/workflows/mobile-ci.yml"
 
 jobs:
   setup:
@@ -124,7 +123,7 @@ jobs:
         run: |
           cd mobile
           flutter build apk --release \
-            --build-name=0.1.0 \
+            --build-name=0.2.0 \
             --build-number=$GITHUB_RUN_NUMBER \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
