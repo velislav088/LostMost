@@ -1,4 +1,3 @@
-# TODO: Fix the name because all directory imports want mobile
 name: mobile
 description: "Мобилно приложение за намиране на nRF52840 тагове чрез ESP32 рутери."
 publish_to: "none"
