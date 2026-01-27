@@ -1,5 +1,10 @@
 name: Mobile CI
 
+# prevent duplicate runs and cancel in-progress on new pushes to same branch/ref
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
