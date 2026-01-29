@@ -5,6 +5,10 @@ concurrency:
   group: mobile-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FLUTTER_VERSION: "3.38.5"
+  BUILD_NAME: "0.2.0"
+
 on:
   push:
     branches:
@@ -20,27 +24,16 @@ on:
       - ".github/workflows/mobile-ci.yml"
 
 jobs:
-  setup:
-    name: Setup Flutter
+  checks:
+    name: Format, Analyze, Test
     runs-on: ubuntu-latest
 
-    outputs:
-      flutter-path: ${{ steps.flutter-path.outputs.flutter }}
     steps:
-      - name: Get code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install Flutter
-        id: flutter-path
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.38.5"
-
-      - name: Cache Flutter
-        uses: actions/cache@v3
-        with:
-          path: ~/.flutter
-          key: flutter-${{ runner.os }}-3.38.5
+          flutter-version: ${{ env.FLUTTER_VERSION }}
 
       - name: Cache pub packages
         uses: actions/cache@v3
@@ -58,41 +51,17 @@ jobs:
           cd mobile
           mkdir -p assets
 
-  checks:
-    name: Format, Analyze, Test
-    needs: setup
-    runs-on: ubuntu-latest
+      - name: Check formatting
+        run: cd mobile && dart format --output=none --set-exit-if-changed .
 
-    strategy:
-      matrix:
-        task: [format, analyze, test]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.38.5"
+      - name: Analyze code
+        run: cd mobile && flutter analyze
 
-      - name: Get packages
-        run: cd mobile && flutter pub get
-
-      - name: Create assets folder
-        run: |
-          cd mobile
-          mkdir -p assets
-
-      - name: Run tasks
-        run: |
-          cd mobile
-          if [ "${{ matrix.task }}" = "format" ]; then
-            dart format --output=none --set-exit-if-changed .
-          elif [ "${{ matrix.task }}" = "analyze" ]; then
-            flutter analyze
-          elif [ "${{ matrix.task }}" = "test" ]; then
-            flutter test --coverage
-          fi
+      - name: Run tests
+        run: cd mobile && flutter test --coverage
   build-android:
     name: Build Android APK
-    needs: setup
+    needs: checks
     runs-on: ubuntu-latest
 
     steps:
@@ -106,7 +75,15 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.38.5"
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Cache pub packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.pub-cache
+            mobile/.dart_tool
+          key: pub-${{ runner.os }}-${{ hashFiles('mobile/pubspec.lock') }}
 
       - name: Get packages
         run: cd mobile && flutter pub get
@@ -116,20 +93,12 @@ jobs:
           cd mobile
           mkdir -p assets
 
-      - name: Set environment variables
-        run: |
-          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> $GITHUB_ENV
-          echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> $GITHUB_ENV
-          echo "MQTT_SERVER=${{ secrets.MQTT_SERVER }}" >> $GITHUB_ENV
-          echo "MQTT_USERNAME=${{ secrets.MQTT_USERNAME }}" >> $GITHUB_ENV
-          echo "MQTT_PASSWORD=${{ secrets.MQTT_PASSWORD }}" >> $GITHUB_ENV
-
       - name: Build APK
         run: |
           cd mobile
           flutter build apk --release \
-            --build-name=0.2.0 \
-            --build-number=$GITHUB_RUN_NUMBER \
+            --build-name=${{ env.BUILD_NAME }} \
+            --build-number=${{ github.run_number }} \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
             --dart-define=MQTT_SERVER=${{ secrets.MQTT_SERVER }} \
@@ -141,3 +110,49 @@ jobs:
         with:
           name: app-release
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
+
+  build-ios:
+    name: Build iOS App
+    needs: checks
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Cache pub packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.pub-cache
+            mobile/.dart_tool
+          key: pub-${{ runner.os }}-${{ hashFiles('mobile/pubspec.lock') }}
+
+      - name: Get packages
+        run: cd mobile && flutter pub get
+
+      - name: Create assets folder
+        run: |
+          cd mobile
+          mkdir -p assets
+
+      - name: Build iOS App
+        run: |
+          cd mobile
+          flutter build ios --release \
+            --build-name=${{ env.BUILD_NAME }} \
+            --build-number=${{ github.run_number }} \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            --dart-define=MQTT_SERVER=${{ secrets.MQTT_SERVER }} \
+            --dart-define=MQTT_USERNAME=${{ secrets.MQTT_USERNAME }} \
+            --dart-define=MQTT_PASSWORD=${{ secrets.MQTT_PASSWORD }}
+
+      - name: Upload iOS Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-ios-build
+          path: mobile/build/ios/Release-iphoneos
