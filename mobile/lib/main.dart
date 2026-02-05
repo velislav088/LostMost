@@ -22,14 +22,26 @@ void main() async {
 
   try {
     // load environment variables
-    await dotenv.load(fileName: 'assets/.env');
+    try {
+      await dotenv.load(fileName: 'assets/.env');
+    } catch (e) {
+      throw Exception(
+        'Could not load environment files'
+        'Error: $e',
+      );
+    }
 
-    final supabaseAnonKey = dotenv.get('SUPABASE_ANON_KEY');
-    final supabaseUrl = dotenv.get('SUPABASE_URL');
+    final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+    final supabaseUrl = dotenv.env['SUPABASE_URL'];
 
     // validate environment variables
-    if (supabaseAnonKey.isEmpty || supabaseUrl.isEmpty) {
-      throw Exception('Missing required environment variables');
+    if (supabaseAnonKey == null ||
+        supabaseAnonKey.isEmpty ||
+        supabaseUrl == null ||
+        supabaseUrl.isEmpty) {
+      throw Exception(
+        'Missing required SUPABASE_ANON_KEY and SUPABASE_URL  environment variables',
+      );
     }
 
     // supabase setup
