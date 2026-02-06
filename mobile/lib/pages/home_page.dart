@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile/mqtt/mqtt_service.dart';
 import 'package:mobile/theme/app_localizations.dart';
 import 'package:mobile/theme/app_theme.dart';
+import 'package:mobile/widgets/animations_util.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
@@ -94,67 +95,111 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context, 'home_title'))),
-      body: Center(
-        child: _error != null
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error_outline, size: 48, color: context.danger),
-                  const SizedBox(height: 16),
-                  Text(
-                    AppLocalizations.of(context, 'error'),
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: context.danger,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: _error != null
+                ? FadeInAnimation(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: context.danger,
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          AppLocalizations.of(context, 'error'),
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(
+                                color: context.danger,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(color: context.textMuted),
+                        ),
+                        const SizedBox(height: 32),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _error = null;
+                              _rssi = null;
+                            });
+                            _initializeMQTT();
+                          },
+                          icon: const Icon(Icons.refresh),
+                          label: Text(AppLocalizations.of(context, 'retry')),
+                        ),
+                      ],
+                    ),
+                  )
+                : FadeInAnimation(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ScaleInAnimation(
+                          child: Container(
+                            padding: const EdgeInsets.all(32),
+                            decoration: BoxDecoration(
+                              color: context.primary.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.sensors,
+                              size: 80,
+                              color: context.primary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 48),
+                        Text(
+                          _rssi ?? AppLocalizations.of(context, 'connecting'),
+                          style: Theme.of(context).textTheme.displayMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: context.text,
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                        if (rssiValue != null) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getProximityColor(
+                                context,
+                                rssiValue,
+                              ).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              _getProximityLabel(context, rssiValue),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: _getProximityColor(
+                                      context,
+                                      rssiValue,
+                                    ),
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      _error!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 14, color: context.textMuted),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _error = null;
-                        _rssi = null;
-                      });
-                      _initializeMQTT();
-                    },
-                    child: Text(AppLocalizations.of(context, 'retry')),
-                  ),
-                ],
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    _rssi ?? AppLocalizations.of(context, 'connecting'),
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  if (rssiValue != null) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      _getProximityLabel(context, rssiValue),
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: _getProximityColor(context, rssiValue),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+          ),
+        ),
       ),
     );
   }
