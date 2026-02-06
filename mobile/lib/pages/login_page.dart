@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/auth/auth_service.dart';
 import 'package:mobile/theme/app_localizations.dart';
 import 'package:mobile/theme/app_theme.dart';
+import 'package:mobile/widgets/animations_util.dart';
 import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
@@ -75,29 +76,38 @@ class _LoginPageState extends State<LoginPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // icon
-            Icon(
-              Icons.lock_outline_rounded,
-              size: 80,
-              color: Theme.of(context).colorScheme.primary,
+            ScaleInAnimation(
+              child: Icon(
+                Icons.lock_outline_rounded,
+                size: 80,
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
             const SizedBox(height: 24),
 
             // title
-            Text(
-              AppLocalizations.of(context, 'login_title'),
-              textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              AppLocalizations.of(context, 'login_subtitle'),
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
+            FadeInAnimation(
+              delay: const Duration(milliseconds: 200),
+              child: Column(
+                children: [
+                  Text(
+                    AppLocalizations.of(context, 'login_title'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    AppLocalizations.of(context, 'login_subtitle'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 48),

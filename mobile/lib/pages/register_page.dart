@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/auth/auth_service.dart';
 import 'package:mobile/theme/app_localizations.dart';
 import 'package:mobile/theme/app_theme.dart';
+import 'package:mobile/widgets/animations_util.dart';
 import 'package:provider/provider.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -104,20 +105,25 @@ class _RegisterPageState extends State<RegisterPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // icon
-            Icon(
-              Icons.person_add_outlined,
-              size: 80,
-              color: Theme.of(context).colorScheme.primary,
+            ScaleInAnimation(
+              child: Icon(
+                Icons.person_add_outlined,
+                size: 80,
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
             const SizedBox(height: 24),
 
             // title
-            Text(
-              AppLocalizations.of(context, 'signup_button'),
-              textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            FadeInAnimation(
+              delay: const Duration(milliseconds: 200),
+              child: Text(
+                AppLocalizations.of(context, 'signup_button'),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             const SizedBox(height: 48),
 
