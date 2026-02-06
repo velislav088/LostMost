@@ -40,7 +40,7 @@ void main() async {
         supabaseUrl == null ||
         supabaseUrl.isEmpty) {
       throw Exception(
-        'Missing required SUPABASE_ANON_KEY and SUPABASE_URL  environment variables',
+        'Missing required SUPABASE_ANON_KEY and SUPABASE_URL environment variables',
       );
     }
 
