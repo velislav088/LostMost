@@ -7,7 +7,6 @@ concurrency:
 
 env:
   FLUTTER_VERSION: "3.38.5"
-  BUILD_NAME: "0.2.0"
 
 on:
   push:
@@ -93,11 +92,17 @@ jobs:
           cd mobile
           mkdir -p assets
 
+      - name: Extract version from pubspec.yaml
+        id: extract_version
+        run: |
+          VERSION=$(grep 'version:' mobile/pubspec.yaml | cut -d ' ' -f 2 | cut -d '+' -f 1)
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: Build APK
         run: |
           cd mobile
           flutter build apk --release \
-            --build-name=${{ env.BUILD_NAME }} \
+            --build-name=${{ env.APP_VERSION }} \
             --build-number=${{ github.run_number }} \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \

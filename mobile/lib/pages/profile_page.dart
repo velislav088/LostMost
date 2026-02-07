@@ -8,6 +8,7 @@ import 'package:mobile/theme/app_theme.dart';
 import 'package:mobile/theme/settings_provider.dart';
 import 'package:mobile/theme/theme_provider.dart';
 import 'package:mobile/widgets/animations_util.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -21,11 +22,23 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   String _cacheSize = 'Calculating...';
+  String _appVersion = '...';
 
   @override
   void initState() {
     super.initState();
     _calculateCacheSize();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _appVersion = packageInfo.version;
+    });
   }
 
   // calculate app cache
@@ -506,7 +519,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       title: Text(t('version')),
                       trailing: Text(
-                        '0.1.0',
+                        _appVersion,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: context.textMuted,
                         ),
