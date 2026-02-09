@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile/models/device.dart';
+import 'package:mobile/models/scan_result.dart';
 import 'package:mobile/mqtt/mqtt_service.dart';
 import 'package:mobile/pages/home_page.dart';
 import 'package:mobile/theme/settings_provider.dart';
@@ -14,13 +16,13 @@ class MockMQTTService extends Mock implements MQTTService {}
 
 void main() {
   late MockMQTTService mockMQTT;
-  late StreamController<String> controller;
+  late StreamController<ScanResult> controller;
 
   setUp(() {
     mockMQTT = MockMQTTService();
-    controller = StreamController<String>();
+    controller = StreamController<ScanResult>();
     when(() => mockMQTT.initialize()).thenAnswer((_) async {});
-    when(() => mockMQTT.rssiStream).thenAnswer((_) => controller.stream);
+    when(() => mockMQTT.scanResultStream).thenAnswer((_) => controller.stream);
   });
 
   tearDown(() async {
@@ -54,12 +56,18 @@ void main() {
 
   testWidgets('HomePage shows RSSI updates from MQTTService', (tester) async {
     await tester.pumpWidget(createWidgetUnderTest(const HomePage()));
-    await tester.pumpAndSettle();
+    await tester.pumpAndSettle(); // Allow Init
 
     expect(find.text('Connecting...'), findsOneWidget);
 
     // emit rssi
-    controller.add('RSSI: -50');
+    controller.add(
+      ScanResult(
+        deviceId: 'scanner_1',
+        timestamp: DateTime.now(),
+        devices: [Device(id: 'dev1', name: 'Tag 1', rssi: -50)],
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('RSSI: -50'), findsOneWidget);
