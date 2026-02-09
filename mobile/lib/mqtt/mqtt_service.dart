@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:mobile/config/app_constants.dart';
+import 'package:mobile/models/scan_result.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 
@@ -18,13 +21,9 @@ class MQTTService {
   static String get mqttUsername => dotenv.get('MQTT_USERNAME');
   static String get mqttPassword => dotenv.get('MQTT_PASSWORD');
 
-  // default broker settings (for now)
-  static const int mqttPort = 8883;
-  static const String deviceId = 'esp32_001';
-
   late MqttServerClient _client;
-  final _rssiController = StreamController<String>.broadcast();
-  Stream<String> get rssiStream => _rssiController.stream;
+  final _scanResultController = StreamController<ScanResult>.broadcast();
+  Stream<ScanResult> get scanResultStream => _scanResultController.stream;
 
   Timer? _scanTimer;
   bool _isInitialized = false;
@@ -40,10 +39,10 @@ class MQTTService {
       _client = MqttServerClient.withPort(
         mqttServer,
         'flutter_client_${DateTime.now().millisecondsSinceEpoch}',
-        mqttPort,
+        AppConstants.mqttPort,
       );
       _client.secure = true;
-      _client.keepAlivePeriod = 20;
+      _client.keepAlivePeriod = AppConstants.mqttKeepAlive;
 
       final connMsg = MqttConnectMessage()
         ..withClientIdentifier(
@@ -67,8 +66,10 @@ class MQTTService {
       _isConnected = true;
 
       // broker topics
-      const resultsTopic = 'ble/scanner/$deviceId/results';
-      const commandsTopic = 'ble/scanner/$deviceId/commands';
+      const resultsTopic =
+          'ble/scanner/${AppConstants.defaultDeviceId}/results';
+      const commandsTopic =
+          'ble/scanner/${AppConstants.defaultDeviceId}/commands';
 
       // subscribe to broker
       _client.subscribe(resultsTopic, MqttQos.atMostOnce);
@@ -90,28 +91,28 @@ class MQTTService {
               );
               final data = jsonDecode(payloadString) as Map<String, dynamic>;
 
-              // check if any devices are found
-              final devices = data['devices'] as List<dynamic>?;
-              if (devices != null && devices.isNotEmpty) {
-                final rssiValue = devices[0]['rssi'].toString();
-                _rssiController.add('RSSI: $rssiValue');
-              } else {
-                _rssiController.add('No devices found');
+              try {
+                final result = ScanResult.fromJson(data);
+                _scanResultController.add(result);
+              } catch (e) {
+                // If parsing fails for ScanResult, we might want to log it but not crash the stream
               }
             }
           } catch (e) {
-            _rssiController.addError(
+            _scanResultController.addError(
               'Error parsing MQTT message: ${e.toString()}',
             );
           }
         },
         onError: (error) {
-          _rssiController.addError('MQTT stream error: ${error.toString()}');
+          _scanResultController.addError(
+            'MQTT stream error: ${error.toString()}',
+          );
         },
       );
 
       // Send request every 10 seconds
-      _scanTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      _scanTimer = Timer.periodic(AppConstants.scanInterval, (_) {
         try {
           final requestId = 'flutter_${DateTime.now().millisecondsSinceEpoch}';
           final scanMessage = jsonEncode({
@@ -125,7 +126,7 @@ class MQTTService {
             _client.publishMessage(commandsTopic, MqttQos.atMostOnce, payload);
           }
         } catch (e) {
-          _rssiController.addError(
+          _scanResultController.addError(
             'Error sending scan request: ${e.toString()}',
           );
         }
@@ -152,8 +153,8 @@ class MQTTService {
       }
       _isConnected = false;
     }
-    if (!_rssiController.isClosed) {
-      _rssiController.close();
+    if (!_scanResultController.isClosed) {
+      _scanResultController.close();
     }
     _isInitialized = false;
   }
