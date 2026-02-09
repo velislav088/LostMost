@@ -1,69 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/config/app_constants.dart';
 import 'package:mobile/mqtt/mqtt_service.dart';
 import 'package:mobile/theme/app_localizations.dart';
 import 'package:mobile/theme/app_theme.dart';
+import 'package:mobile/view_models/home_view_model.dart';
 import 'package:mobile/widgets/animations_util.dart';
 import 'package:provider/provider.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  Widget build(BuildContext context) => ChangeNotifierProvider(
+    create: (context) {
+      final vm = HomeViewModel(
+        mqttService: Provider.of<MQTTService>(context, listen: false),
+      )..initialize();
+      return vm;
+    },
+    child: const _HomePageContent(),
+  );
 }
 
-class _HomePageState extends State<HomePage> {
-  // get mqtt service
-  late final MQTTService _rssiService;
-  String? _rssi;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _rssiService = Provider.of<MQTTService>(context, listen: false);
-    _initializeMQTT();
-  }
-
-  Future<void> _initializeMQTT() async {
-    try {
-      await _rssiService.initialize();
-      _rssiService.rssiStream.listen(
-        (value) {
-          if (mounted) {
-            setState(() {
-              _rssi = value;
-              _error = null;
-            });
-          }
-        },
-        onError: (error) {
-          if (mounted) {
-            setState(() {
-              _error = error.toString();
-            });
-          }
-        },
-      );
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-        });
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _rssiService.dispose();
-    super.dispose();
-  }
+class _HomePageContent extends StatelessWidget {
+  const _HomePageContent();
 
   String _getProximityLabel(BuildContext context, int rssi) {
-    if (rssi >= -60) {
+    if (rssi >= AppConstants.rssiCloseThreshold) {
       return AppLocalizations.of(context, 'proximity_close');
-    } else if (rssi >= -80) {
+    } else if (rssi >= AppConstants.rssiNearbyThreshold) {
       return AppLocalizations.of(context, 'proximity_nearby');
     } else {
       return AppLocalizations.of(context, 'proximity_far');
@@ -71,9 +36,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Color _getProximityColor(BuildContext context, int rssi) {
-    if (rssi >= -60) {
+    if (rssi >= AppConstants.rssiCloseThreshold) {
       return context.success;
-    } else if (rssi >= -80) {
+    } else if (rssi >= AppConstants.rssiNearbyThreshold) {
       return context.warning;
     } else {
       return context.danger;
@@ -91,7 +56,10 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final rssiValue = _rssi != null ? _parseRssi(_rssi!) : null;
+    final viewModel = Provider.of<HomeViewModel>(context);
+    final rssiString = viewModel.currentRssi;
+    final rssiValue = rssiString != null ? _parseRssi(rssiString) : null;
+    final error = viewModel.error;
 
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context, 'home_title'))),
@@ -99,7 +67,7 @@ class _HomePageState extends State<HomePage> {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Center(
-            child: _error != null
+            child: error != null
                 ? FadeInAnimation(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -120,20 +88,14 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          _error!,
+                          error,
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(color: context.textMuted),
                         ),
                         const SizedBox(height: 32),
                         ElevatedButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              _error = null;
-                              _rssi = null;
-                            });
-                            _initializeMQTT();
-                          },
+                          onPressed: viewModel.retry,
                           icon: const Icon(Icons.refresh),
                           label: Text(AppLocalizations.of(context, 'retry')),
                         ),
@@ -160,7 +122,8 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 48),
                         Text(
-                          _rssi ?? AppLocalizations.of(context, 'connecting'),
+                          rssiString ??
+                              AppLocalizations.of(context, 'connecting'),
                           style: Theme.of(context).textTheme.displayMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
