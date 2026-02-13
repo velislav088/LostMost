@@ -100,8 +100,7 @@ class AuthService {
   }
 
   /// Parse Supabase auth errors to more normal looking messages
-  String _parseAuthError(String message) {
-    return switch (message) {
+  String _parseAuthError(String message) => switch (message) {
       _ when message.contains('Invalid login credentials') =>
         'Invalid email or password',
       _ when message.contains('User already registered') =>
@@ -114,5 +113,4 @@ class AuthService {
         'Signups are currently disabled',
       _ => message,
     };
-  }
 }
