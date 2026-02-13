@@ -101,16 +101,16 @@ class AuthService {
 
   /// Parse Supabase auth errors to more normal looking messages
   String _parseAuthError(String message) => switch (message) {
-      _ when message.contains('Invalid login credentials') =>
-        'Invalid email or password',
-      _ when message.contains('User already registered') =>
-        'Email is already registered',
-      _ when message.contains('Password should be at least') =>
-        'Password must be at least 6 characters',
-      _ when message.contains('Unable to validate email') =>
-        'Invalid email format',
-      _ when message.contains('Signup disabled') =>
-        'Signups are currently disabled',
-      _ => message,
-    };
+    _ when message.contains('Invalid login credentials') =>
+      'Invalid email or password',
+    _ when message.contains('User already registered') =>
+      'Email is already registered',
+    _ when message.contains('Password should be at least') =>
+      'Password must be at least 6 characters',
+    _ when message.contains('Unable to validate email') =>
+      'Invalid email format',
+    _ when message.contains('Signup disabled') =>
+      'Signups are currently disabled',
+    _ => message,
+  };
 }
