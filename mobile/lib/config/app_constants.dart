@@ -4,6 +4,5 @@ class AppConstants {
   static const int mqttKeepAlive = 20;
   static const Duration scanInterval = Duration(seconds: 10);
 
-  static const int rssiCloseThreshold = -60;
   static const int rssiNearbyThreshold = -80;
 }
