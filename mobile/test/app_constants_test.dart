@@ -3,8 +3,10 @@ import 'package:mobile/config/app_constants.dart';
 
 void main() {
   test('RSSI thresholds are ordered correctly', () {
-    expect(AppConstants.rssiCloseThreshold,
-        greaterThan(AppConstants.rssiNearbyThreshold));
+    expect(
+      AppConstants.rssiCloseThreshold,
+      greaterThan(AppConstants.rssiNearbyThreshold),
+    );
   });
 
   test('Default values are reasonable', () {
