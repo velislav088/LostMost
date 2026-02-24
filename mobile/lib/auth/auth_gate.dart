@@ -1,63 +1,22 @@
-/*
-
-AUTH GATE - This will continuously listen for auth state changes.
-
---------------------------------------------------------------------------------------------------------------------------
-
-unauthenticated -> Login Page
-authenticated -> Home Page
-
-*/
-
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:mobile/auth/auth_service.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthGate extends StatelessWidget {
-  /// Gate that routes based on authentication status
-  /// Optional callback for testing authentication changes
   const AuthGate({super.key, this.onAuthChange});
 
-  /// Callback for auth status changes (used for testing)
   final void Function({required bool isAuthenticated})? onAuthChange;
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context, listen: false);
+    final authService = context.read<AuthService>();
 
-    return StreamBuilder(
-      // Listen to auth state changes from AuthService
+    return StreamBuilder<AuthState>(
       stream: authService.authStateChanges,
-
-      // Build appropriate based on the auth state
       builder: (context, snapshot) {
-        // loading..
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        // check if there is a valid session currently
-        final session = snapshot.hasData ? snapshot.data!.session : null;
-
-        // Schedule navigation after current build frame.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          // If test provides an observer, use it and don't navigate.
-          if (onAuthChange != null) {
-            onAuthChange!(isAuthenticated: session != null);
-            return;
-          }
-
-          if (session != null) {
-            context.go('/');
-          } else {
-            context.go('/login');
-          }
-        });
-
-        // return loader..
+        final session = snapshot.data?.session ?? authService.currentSession;
+        onAuthChange?.call(isAuthenticated: session != null);
         return const Scaffold(body: Center(child: CircularProgressIndicator()));
       },
     );
