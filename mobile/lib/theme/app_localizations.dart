@@ -5,12 +5,12 @@ import 'package:provider/provider.dart';
 class AppLocalizations {
   static String of(BuildContext context, String key, {bool listen = true}) {
     final settings = Provider.of<SettingsProvider>(context, listen: listen);
-    final isBg = settings.locale.languageCode == 'bg';
-    return isBg ? (bg[key] ?? key) : (en[key] ?? key);
+    final isBulgarian = settings.locale.languageCode == 'bg';
+    final values = isBulgarian ? bg : en;
+    return values[key] ?? key;
   }
 
-  static const en = {
-    // General
+  static const Map<String, String> en = <String, String>{
     'app_name': 'LostMost',
     'cancel': 'Cancel',
     'confirm': 'Confirm',
@@ -18,24 +18,21 @@ class AppLocalizations {
     'error': 'Error',
     'success': 'Success',
     'loading': 'Loading...',
+    'retry': 'Retry',
 
-    // Navbar
     'nav_home': 'Home',
     'nav_search': 'Search',
     'nav_settings': 'Settings',
 
-    // Home
     'home_title': 'RSSI Viewer',
     'connecting': 'Connecting...',
     'proximity_close': 'Close',
     'proximity_nearby': 'Nearby',
     'proximity_far': 'Far',
 
-    // Search
     'search_title': 'Search',
     'search_page': 'Search Page',
 
-    // Auth
     'login_title': 'Login',
     'login_subtitle': 'Welcome back',
     'email': 'Email',
@@ -47,8 +44,13 @@ class AppLocalizations {
     'have_account': 'Already have an account? Login',
     'passwords_mismatch': "Passwords don't match",
     'forgot_password': 'Forgot Password?',
+    'email_required': 'Email is required',
+    'invalid_email': 'Invalid email address',
+    'password_required': 'Password is required',
+    'password_too_short': 'Password must be at least 6 characters',
+    'confirm_password_required': 'Please confirm your password',
+    'generic_auth_error': 'Authentication failed. Please try again.',
 
-    // Profile
     'profile_title': 'Profile',
     'account': 'Account',
     'appearance': 'Appearance',
@@ -65,9 +67,12 @@ class AppLocalizations {
     'clear_cache': 'Clear Cache',
     'clear_cache_confirm': 'Are you sure you want to clear the app cache?',
     'clear': 'Clear',
+    'cache_cleared': 'Cache cleared successfully',
+    'cache_clear_failed': 'Failed to clear cache',
     'about': 'About',
     'version': 'Version',
     'source_code': 'Source Code',
+    'open_link_failed': 'Could not open link',
     'color_preview': 'Color Preview',
     'primary_color': 'Primary',
     'secondary_color': 'Secondary',
@@ -83,8 +88,7 @@ class AppLocalizations {
     'password_update_failed': 'Failed to update password',
   };
 
-  static const bg = {
-    // General
+  static const Map<String, String> bg = <String, String>{
     'app_name': 'LostMost',
     'cancel': 'Отказ',
     'confirm': 'Потвърди',
@@ -92,24 +96,21 @@ class AppLocalizations {
     'error': 'Грешка',
     'success': 'Успех',
     'loading': 'Зареждане...',
+    'retry': 'Опитай отново',
 
-    // Navbar
     'nav_home': 'Начало',
     'nav_search': 'Търсене',
     'nav_settings': 'Настройки',
 
-    // Home
     'home_title': 'RSSI Преглед',
     'connecting': 'Свързване...',
     'proximity_close': 'Близо',
     'proximity_nearby': 'Наблизо',
     'proximity_far': 'Далеч',
 
-    // Search
     'search_title': 'Търсене',
     'search_page': 'Страница за търсене',
 
-    // Auth
     'login_title': 'Вход',
     'login_subtitle': 'Добре дошли отново',
     'email': 'Имейл',
@@ -121,8 +122,13 @@ class AppLocalizations {
     'have_account': 'Вече имате акаунт? Влезте',
     'passwords_mismatch': 'Паролите не съвпадат',
     'forgot_password': 'Забравена парола?',
+    'email_required': 'Имейлът е задължителен',
+    'invalid_email': 'Невалиден имейл адрес',
+    'password_required': 'Паролата е задължителна',
+    'password_too_short': 'Паролата трябва да е поне 6 символа',
+    'confirm_password_required': 'Потвърдете паролата',
+    'generic_auth_error': 'Грешка при удостоверяване. Опитайте отново.',
 
-    // Profile
     'profile_title': 'Профил',
     'account': 'Акаунт',
     'appearance': 'Външен вид',
@@ -139,9 +145,12 @@ class AppLocalizations {
     'clear_cache': 'Изчистване на кеша',
     'clear_cache_confirm': 'Сигурни ли сте, че искате да изчистите кеша?',
     'clear': 'Изчисти',
+    'cache_cleared': 'Кешът е изчистен успешно',
+    'cache_clear_failed': 'Грешка при изчистване на кеша',
     'about': 'За приложението',
     'version': 'Версия',
     'source_code': 'Изходен код',
+    'open_link_failed': 'Неуспешно отваряне на линк',
     'color_preview': 'Преглед на цветовете',
     'primary_color': 'Основен',
     'secondary_color': 'Вторичен',
