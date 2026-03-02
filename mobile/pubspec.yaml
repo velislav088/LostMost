@@ -16,7 +16,6 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   go_router: ^17.0.0
-  google_nav_bar: ^5.0.7
   mqtt_client: ^10.11.1
   package_info_plus: ^8.2.1
   path_provider: ^2.1.5
@@ -28,6 +27,8 @@ dependencies:
 dev_dependencies:
   flutter_launcher_icons: ^0.14.4
   flutter_lints: ^5.0.0
+  integration_test:
+    sdk: flutter
   flutter_test:
     sdk: flutter
   mocktail: ^1.0.3
