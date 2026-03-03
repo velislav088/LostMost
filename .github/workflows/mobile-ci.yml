@@ -1,12 +1,11 @@
 name: Mobile CI
 
-# prevent duplicate runs and cancel in-progress on new pushes to same branch/ref
 concurrency:
-  group: mobile-${{ github.ref }}
+  group: mobile-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  FLUTTER_VERSION: "3.38.5"
+  FLUTTER_VERSION: "3.38.8"
 
 on:
   push:
@@ -21,96 +20,94 @@ on:
     paths:
       - "mobile/**"
       - ".github/workflows/mobile-ci.yml"
+  workflow_dispatch:
 
 jobs:
   checks:
     name: Format, Analyze, Test
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: subosito/flutter-action@v2
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
 
-      - name: Cache pub packages
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.pub-cache
-            mobile/.dart_tool
-          key: pub-${{ runner.os }}-${{ hashFiles('mobile/pubspec.lock') }}
-
-      - name: Get packages
-        run: cd mobile && flutter pub get
-
-      - name: Create assets folder
-        run: |
-          cd mobile
-          mkdir -p assets
+      - name: Install dependencies
+        run: flutter pub get
 
       - name: Check formatting
-        run: cd mobile && dart format --output=none --set-exit-if-changed .
+        run: dart format --output=none --set-exit-if-changed .
 
       - name: Analyze code
-        run: cd mobile && flutter analyze
+        run: flutter analyze
 
-      - name: Run tests
-        run: cd mobile && flutter test --coverage
+      - name: Run tests with coverage
+        run: flutter test --coverage
+
+      - name: Enforce critical coverage thresholds
+        run: dart tool/check_coverage.dart coverage/lcov.info
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: mobile/coverage/lcov.info
+
   build-android:
     name: Build Android APK
     needs: checks
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    defaults:
+      run:
+        working-directory: mobile
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Install Java
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: "zulu"
+          distribution: zulu
           java-version: "17"
+          cache: gradle
 
-      - uses: subosito/flutter-action@v2
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
 
-      - name: Cache pub packages
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.pub-cache
-            mobile/.dart_tool
-          key: pub-${{ runner.os }}-${{ hashFiles('mobile/pubspec.lock') }}
-
-      - name: Get packages
-        run: cd mobile && flutter pub get
-
-      - name: Create assets folder
-        run: |
-          cd mobile
-          mkdir -p assets
+      - name: Install dependencies
+        run: flutter pub get
 
       - name: Extract version from pubspec.yaml
         id: extract_version
         run: |
-          VERSION=$(grep 'version:' mobile/pubspec.yaml | cut -d ' ' -f 2 | cut -d '+' -f 1)
-          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          VERSION=$(grep 'version:' pubspec.yaml | cut -d ' ' -f 2 | cut -d '+' -f 1)
+          echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Build APK
         run: |
-          cd mobile
           flutter build apk --release \
-            --build-name=${{ env.APP_VERSION }} \
-            --build-number=${{ github.run_number }} \
-            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
-            --dart-define=MQTT_SERVER=${{ secrets.MQTT_SERVER }} \
-            --dart-define=MQTT_USERNAME=${{ secrets.MQTT_USERNAME }} \
-            --dart-define=MQTT_PASSWORD=${{ secrets.MQTT_PASSWORD }}
+            --build-name="${{ env.APP_VERSION }}" \
+            --build-number="${{ github.run_number }}" \
+            --dart-define=SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
+            --dart-define=SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}" \
+            --dart-define=MQTT_SERVER="${{ secrets.MQTT_SERVER }}" \
+            --dart-define=MQTT_USERNAME="${{ secrets.MQTT_USERNAME }}" \
+            --dart-define=MQTT_PASSWORD="${{ secrets.MQTT_PASSWORD }}"
 
-      - name: Upload APK Artifact
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release
