@@ -17,398 +17,509 @@ class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
   @override
-  Widget build(BuildContext context) => ChangeNotifierProvider(
-    create: (context) => ProfileViewModel(
-      authService: Provider.of<AuthService>(context, listen: false),
-    ),
-    child: const _ProfilePageContent(),
-  );
+  Widget build(BuildContext context) =>
+      ChangeNotifierProvider<ProfileViewModel>(
+        create: (context) =>
+            ProfileViewModel(authService: context.read<AuthService>()),
+        child: const _ProfilePageContent(),
+      );
 }
 
 class _ProfilePageContent extends StatelessWidget {
   const _ProfilePageContent();
 
-  Future<void> _launchGitHub(BuildContext context) async {
-    final url = Uri.parse('https://github.com/velislav088/LostMost');
-    if (!await launchUrl(url)) {
-      if (!context.mounted) {
-        return;
-      }
-      context.showInfoSnackBar('Could not launch GitHub URL');
-    }
-  }
-
   Future<void> _confirmLogout(BuildContext context) async {
-    final viewModel = Provider.of<ProfileViewModel>(context, listen: false);
-    final logoutDialog = await showDialog<bool>(
+    final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Log out'),
-        content: const Text('Are you sure you want to log out?'),
-        actions: [
+        title: Text(_t(context, 'logout')),
+        content: Text(_t(context, 'logout_confirm')),
+        actions: <Widget>[
           TextButton(
             onPressed: () => context.pop(false),
-            child: const Text('Cancel'),
+            child: Text(_t(context, 'cancel', listen: false)),
           ),
           ElevatedButton(
             onPressed: () => context.pop(true),
-            child: const Text('Logout'),
+            child: Text(_t(context, 'logout', listen: false)),
           ),
         ],
       ),
     );
 
-    if (logoutDialog == true) {
-      await viewModel.logout();
-      if (!context.mounted) {
-        return;
-      }
-      context.go('/login');
+    if (shouldLogout != true) {
+      return;
     }
+
+    if (!context.mounted) {
+      return;
+    }
+
+    await context.read<ProfileViewModel>().logout();
+    if (!context.mounted) {
+      return;
+    }
+    context.go('/login');
   }
 
-  void _showChangePasswordDialog(BuildContext context) {
-    // We keep the controller in the dialog builder or use a stateful widget for the dialog
-    // Since it's simple, we can just use a local controller in the builder
-    showDialog(
+  Future<void> _showChangePasswordDialog(BuildContext context) async {
+    await showDialog<void>(
       context: context,
-      builder: (context) {
-        final passwordController = TextEditingController();
-        return AlertDialog(
-          title: Text(AppLocalizations.of(context, 'change_password')),
-          content: TextField(
-            controller: passwordController,
-            decoration: InputDecoration(
-              labelText: AppLocalizations.of(
-                context,
-                'new_password',
-                listen: false,
-              ),
-            ),
-            obscureText: true,
+      builder: (_) => const _ChangePasswordDialog(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: Text(_t(context, 'profile_title')),
+      actions: <Widget>[
+        IconButton(
+          onPressed: () => _confirmLogout(context),
+          icon: const Icon(Icons.logout),
+        ),
+      ],
+    ),
+    body: FadeInAnimation(
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        children: <Widget>[
+          _AccountSection(
+            onChangePasswordTap: () => _showChangePasswordDialog(context),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => context.pop(),
-              child: Text(
-                AppLocalizations.of(context, 'cancel', listen: false),
+          const SizedBox(height: 16),
+          const _AppearanceSection(),
+          const SizedBox(height: 16),
+          const _LanguageSection(),
+          const SizedBox(height: 16),
+          const _DataStorageSection(),
+          const SizedBox(height: 16),
+          const _AboutSection(),
+          const SizedBox(height: 16),
+          const _ColorPreviewSection(),
+        ],
+      ),
+    ),
+  );
+}
+
+class _AccountSection extends StatelessWidget {
+  const _AccountSection({required this.onChangePasswordTap});
+
+  final VoidCallback onChangePasswordTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final email = context.select<ProfileViewModel, String?>(
+      (viewModel) => viewModel.currentUserEmail,
+    );
+
+    return ProfileSectionCard(
+      title: _t(context, 'account'),
+      child: Column(
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(Icons.email, color: context.textMuted),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  email ?? '...',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
               ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final newPassword = passwordController.text;
-                if (newPassword.isNotEmpty) {
-                  try {
-                    final viewModel = Provider.of<ProfileViewModel>(
-                      context,
-                      listen: false,
-                    );
-                    await viewModel.updatePassword(newPassword);
-                    if (!context.mounted) {
-                      return;
-                    }
-                    context
-                      ..pop()
-                      ..showSuccessSnackBar(
-                        AppLocalizations.of(
-                          context,
-                          'password_updated',
-                          listen: false,
-                        ),
-                      );
-                  } catch (e) {
-                    if (!context.mounted) {
-                      return;
-                    }
-                    // Error is handled in ViewModel but we might want to show it here
-                    // Actually ViewModel rethrows so we can catch it
-                    context.showInfoSnackBar(
-                      '${AppLocalizations.of(context, 'password_update_failed', listen: false)}: $e',
-                    );
+            ],
+          ),
+          const SizedBox(height: 12),
+          ProfileMenuTile(
+            icon: Icons.lock_outline,
+            title: _t(context, 'change_password'),
+            onTap: onChangePasswordTap,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AppearanceSection extends StatelessWidget {
+  const _AppearanceSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final themeOption = context.select<ThemeProvider, ThemeOption>(
+      (provider) => provider.themeOption,
+    );
+
+    return ProfileSectionCard(
+      title: _t(context, 'appearance'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(Icons.palette, color: context.textMuted),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _t(context, 'theme'),
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+              const SizedBox(width: 12),
+              DropdownButton<ThemeOption>(
+                value: themeOption,
+                underline: const SizedBox.shrink(),
+                borderRadius: BorderRadius.circular(8),
+                items: <DropdownMenuItem<ThemeOption>>[
+                  DropdownMenuItem(
+                    value: ThemeOption.system,
+                    child: Text(_t(context, 'system', listen: false)),
+                  ),
+                  DropdownMenuItem(
+                    value: ThemeOption.light,
+                    child: Text(_t(context, 'light', listen: false)),
+                  ),
+                  DropdownMenuItem(
+                    value: ThemeOption.dark,
+                    child: Text(_t(context, 'dark', listen: false)),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
                   }
-                }
-              },
-              child: Text(AppLocalizations.of(context, 'save', listen: false)),
+                  context.read<ThemeProvider>().setThemeOption(value);
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _t(context, 'choose_look'),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: context.textMuted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LanguageSection extends StatelessWidget {
+  const _LanguageSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.select<SettingsProvider, Locale>(
+      (provider) => provider.locale,
+    );
+
+    return ProfileSectionCard(
+      title: _t(context, 'app_language'),
+      child: Row(
+        children: <Widget>[
+          Icon(Icons.language, color: context.textMuted),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _t(context, 'language'),
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
+          ),
+          DropdownButton<Locale>(
+            value: locale,
+            underline: const SizedBox.shrink(),
+            borderRadius: BorderRadius.circular(8),
+            items: const <DropdownMenuItem<Locale>>[
+              DropdownMenuItem(value: Locale('en'), child: Text('English')),
+              DropdownMenuItem(value: Locale('bg'), child: Text('Български')),
+            ],
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              context.read<SettingsProvider>().setLocale(value);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DataStorageSection extends StatelessWidget {
+  const _DataStorageSection();
+
+  Future<void> _confirmAndClearCache(BuildContext context) async {
+    final clearCache = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: <Widget>[
+            Icon(Icons.warning_amber, color: context.warning),
+            const SizedBox(width: 8),
+            Text(_t(context, 'clear_cache')),
           ],
-        );
-      },
+        ),
+        content: Text(
+          _t(context, 'clear_cache_confirm'),
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => context.pop(false),
+            child: Text(_t(context, 'cancel', listen: false)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => context.pop(true),
+            icon: const Icon(Icons.delete),
+            label: Text(_t(context, 'clear', listen: false)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: context.danger,
+              foregroundColor: context.bgLight,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (clearCache != true) {
+      return;
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+
+    final viewModel = context.read<ProfileViewModel>();
+    final success = await viewModel.clearCache();
+    if (!context.mounted) {
+      return;
+    }
+
+    if (success) {
+      context.showSuccessSnackBar(_t(context, 'cache_cleared', listen: false));
+      return;
+    }
+
+    context.showErrorSnackBar(
+      viewModel.error ?? _t(context, 'cache_clear_failed', listen: false),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = Provider.of<ProfileViewModel>(context);
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final dataSaverEnabled = context.select<SettingsProvider, bool>(
+      (provider) => provider.dataSaverEnabled,
+    );
+    final cacheSize = context.select<ProfileViewModel, String>(
+      (viewModel) => viewModel.cacheSize,
+    );
 
-    String t(String key, {bool listen = true}) =>
-        AppLocalizations.of(context, key, listen: listen);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(t('profile_title')),
-        actions: [
-          IconButton(
-            onPressed: () => _confirmLogout(context),
-            icon: const Icon(Icons.logout),
+    return ProfileSectionCard(
+      title: _t(context, 'data_storage'),
+      child: Column(
+        children: <Widget>[
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              _t(context, 'data_saver'),
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            subtitle: Text(
+              _t(context, 'reduce_data'),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: context.textMuted),
+            ),
+            value: dataSaverEnabled,
+            onChanged: (value) {
+              context.read<SettingsProvider>().setDataSaver(value);
+            },
+            secondary: Icon(Icons.data_usage, color: context.textMuted),
+          ),
+          const Divider(),
+          ProfileMenuTile(
+            icon: Icons.delete_outline,
+            title: _t(context, 'clear_cache'),
+            subtitle: cacheSize,
+            onTap: () => _confirmAndClearCache(context),
           ),
         ],
       ),
-      body: FadeInAnimation(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          children: [
-            // Account Section
-            ProfileSectionCard(
-              title: t('account'),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.email, color: context.textMuted),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          viewModel.currentUserEmail ?? '...',
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  ProfileMenuTile(
-                    icon: Icons.lock_outline,
-                    title: t('change_password'),
-                    onTap: () => _showChangePasswordDialog(context),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
+    );
+  }
+}
 
-            // Appearance Section
-            ProfileSectionCard(
-              title: t('appearance'),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.palette, color: context.textMuted),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          t('theme'),
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      DropdownButton<ThemeOption>(
-                        value: themeProvider.themeOption,
-                        underline: Container(),
-                        borderRadius: BorderRadius.circular(8),
-                        items: [
-                          DropdownMenuItem(
-                            value: ThemeOption.system,
-                            child: Text(t('system')),
-                          ),
-                          DropdownMenuItem(
-                            value: ThemeOption.light,
-                            child: Text(t('light')),
-                          ),
-                          DropdownMenuItem(
-                            value: ThemeOption.dark,
-                            child: Text(t('dark')),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            themeProvider.setThemeOption(value);
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    t('choose_look'),
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: context.textMuted),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
+class _AboutSection extends StatelessWidget {
+  const _AboutSection();
 
-            // Language Section
-            ProfileSectionCard(
-              title: t('app_language'),
-              child: Row(
-                children: [
-                  Icon(Icons.language, color: context.textMuted),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      t('language'),
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                  ),
-                  DropdownButton<Locale>(
-                    value: settingsProvider.locale,
-                    underline: Container(),
-                    borderRadius: BorderRadius.circular(8),
-                    items: const [
-                      DropdownMenuItem(
-                        value: Locale('en'),
-                        child: Text('English'),
-                      ),
-                      DropdownMenuItem(
-                        value: Locale('bg'),
-                        child: Text('Български'),
-                      ),
-                    ],
-                    onChanged: (newValue) {
-                      if (newValue != null) {
-                        settingsProvider.setLocale(newValue);
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
+  Future<void> _launchGitHub(BuildContext context) async {
+    final uri = Uri.parse('https://github.com/velislav088/LostMost');
+    if (await launchUrl(uri)) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+    context.showErrorSnackBar(_t(context, 'open_link_failed', listen: false));
+  }
 
-            // Data & Storage Section
-            ProfileSectionCard(
-              title: t('data_storage'),
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      t('data_saver'),
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    subtitle: Text(
-                      t('reduce_data'),
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: context.textMuted),
-                    ),
-                    value: settingsProvider.dataSaverEnabled,
-                    onChanged: settingsProvider.setDataSaver,
-                    secondary: Icon(Icons.data_usage, color: context.textMuted),
-                  ),
-                  const Divider(),
-                  ProfileMenuTile(
-                    icon: Icons.delete_outline,
-                    title: t('clear_cache'),
-                    subtitle: viewModel.cacheSize,
-                    onTap: () async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: Row(
-                            children: [
-                              Icon(Icons.warning_amber, color: context.warning),
-                              const SizedBox(width: 8),
-                              Text(t('clear_cache')),
-                            ],
-                          ),
-                          content: Text(
-                            t('clear_cache_confirm'),
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => context.pop(false),
-                              child: Text(t('cancel', listen: false)),
-                            ),
-                            ElevatedButton.icon(
-                              onPressed: () => context.pop(true),
-                              icon: const Icon(Icons.delete),
-                              label: Text(t('clear', listen: false)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: context.danger,
-                                foregroundColor: context.bgLight,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirm == true) {
-                        if (context.mounted) {
-                          await viewModel.clearCache();
-                          if (context.mounted) {
-                            context.showInfoSnackBar(
-                              viewModel.error ?? 'Cache cleared',
-                            );
-                          }
-                        }
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
+  @override
+  Widget build(BuildContext context) {
+    final appVersion = context.select<ProfileViewModel, String>(
+      (viewModel) => viewModel.appVersion,
+    );
 
-            // About Section
-            ProfileSectionCard(
-              title: t('about'),
-              child: Column(
-                children: [
-                  ProfileMenuTile(
-                    icon: Icons.info_outline,
-                    title: t('version'),
-                    trailing: Text(
-                      viewModel.appVersion,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: context.textMuted,
-                      ),
-                    ),
-                  ),
-                  ProfileMenuTile(
-                    icon: Icons.code,
-                    title: t('source_code'),
-                    trailing: const Icon(Icons.open_in_new),
-                    onTap: () => _launchGitHub(context),
-                  ),
-                ],
-              ),
+    return ProfileSectionCard(
+      title: _t(context, 'about'),
+      child: Column(
+        children: <Widget>[
+          ProfileMenuTile(
+            icon: Icons.info_outline,
+            title: _t(context, 'version'),
+            trailing: Text(
+              appVersion,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: context.textMuted),
             ),
-            const SizedBox(height: 16),
+          ),
+          ProfileMenuTile(
+            icon: Icons.code,
+            title: _t(context, 'source_code'),
+            trailing: const Icon(Icons.open_in_new),
+            onTap: () => _launchGitHub(context),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-            // Color Preview Section
-            ProfileSectionCard(
-              title: t('color_preview'),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _ColorChip(label: t('primary_color'), color: context.primary),
-                  _ColorChip(
-                    label: t('secondary_color'),
-                    color: context.secondary,
-                  ),
-                  _ColorChip(label: t('success_color'), color: context.success),
-                  _ColorChip(label: t('warning_color'), color: context.warning),
-                  _ColorChip(label: t('danger_color'), color: context.danger),
-                  _ColorChip(label: t('info_color'), color: context.info),
-                ],
-              ),
-            ),
-          ],
+class _ColorPreviewSection extends StatelessWidget {
+  const _ColorPreviewSection();
+
+  @override
+  Widget build(BuildContext context) => ProfileSectionCard(
+    title: _t(context, 'color_preview'),
+    child: Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: <Widget>[
+        _ColorChip(label: _t(context, 'primary_color'), color: context.primary),
+        _ColorChip(
+          label: _t(context, 'secondary_color'),
+          color: context.secondary,
+        ),
+        _ColorChip(label: _t(context, 'success_color'), color: context.success),
+        _ColorChip(label: _t(context, 'warning_color'), color: context.warning),
+        _ColorChip(label: _t(context, 'danger_color'), color: context.danger),
+        _ColorChip(label: _t(context, 'info_color'), color: context.info),
+      ],
+    ),
+  );
+}
+
+class _ChangePasswordDialog extends StatefulWidget {
+  const _ChangePasswordDialog();
+
+  @override
+  State<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+}
+
+class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
+  final TextEditingController _passwordController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  String? _validatePassword(String? value) {
+    final password = value?.trim() ?? '';
+    if (password.isEmpty) {
+      return _t(context, 'password_required', listen: false);
+    }
+
+    if (password.length < 6) {
+      return _t(context, 'password_too_short', listen: false);
+    }
+
+    return null;
+  }
+
+  Future<void> _savePassword() async {
+    final formState = _formKey.currentState;
+    if (formState == null || !formState.validate()) {
+      return;
+    }
+
+    final viewModel = context.read<ProfileViewModel>();
+    final success = await viewModel.updatePassword(_passwordController.text);
+    if (!mounted) {
+      return;
+    }
+
+    if (success) {
+      context
+        ..pop()
+        ..showSuccessSnackBar(_t(context, 'password_updated', listen: false));
+      return;
+    }
+
+    context.showErrorSnackBar(
+      viewModel.error ?? _t(context, 'password_update_failed', listen: false),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLoading = context.select<ProfileViewModel, bool>(
+      (viewModel) => viewModel.isLoading,
+    );
+
+    return AlertDialog(
+      title: Text(_t(context, 'change_password')),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: _passwordController,
+          obscureText: true,
+          decoration: InputDecoration(
+            labelText: _t(context, 'new_password', listen: false),
+          ),
+          validator: _validatePassword,
+          onFieldSubmitted: (_) => _savePassword(),
         ),
       ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: isLoading ? null : () => context.pop(),
+          child: Text(_t(context, 'cancel', listen: false)),
+        ),
+        ElevatedButton(
+          onPressed: isLoading ? null : _savePassword,
+          child: isLoading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(_t(context, 'save', listen: false)),
+        ),
+      ],
     );
   }
 }
 
 class _ColorChip extends StatelessWidget {
   const _ColorChip({required this.label, required this.color});
+
   final String label;
   final Color color;
 
@@ -428,3 +539,6 @@ class _ColorChip extends StatelessWidget {
     side: BorderSide(color: context.borderMuted),
   );
 }
+
+String _t(BuildContext context, String key, {bool listen = true}) =>
+    AppLocalizations.of(context, key, listen: listen);

@@ -1,161 +1,238 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mobile/config/app_constants.dart';
 import 'package:mobile/models/scan_result.dart';
-import 'package:mqtt_client/mqtt_client.dart';
-import 'package:mqtt_client/mqtt_server_client.dart';
+import 'package:mobile/mqtt/mqtt_client_adapter.dart';
 
 class MQTTException implements Exception {
   MQTTException(this.message);
+
   final String message;
 
   @override
   String toString() => message;
 }
 
+class MQTTConfig {
+  const MQTTConfig({
+    required this.server,
+    required this.username,
+    required this.password,
+    this.port = AppConstants.mqttPort,
+    this.keepAliveSeconds = AppConstants.mqttKeepAlive,
+    this.deviceId = AppConstants.defaultDeviceId,
+    this.scanInterval = AppConstants.scanInterval,
+  });
+
+  final String server;
+  final String username;
+  final String password;
+  final int port;
+  final int keepAliveSeconds;
+  final String deviceId;
+  final Duration scanInterval;
+}
+
+typedef MQTTClientAdapterFactory =
+    MQTTClientAdapter Function(MQTTConfig config, String clientIdentifier);
+
 class MQTTService {
-  // get broker env variables
-  static String get mqttServer => dotenv.get('MQTT_SERVER');
-  static String get mqttUsername => dotenv.get('MQTT_USERNAME');
-  static String get mqttPassword => dotenv.get('MQTT_PASSWORD');
+  MQTTService({
+    required MQTTConfig config,
+    MQTTClientAdapterFactory? clientFactory,
+    DateTime Function()? clock,
+  }) : _config = config,
+       _clientFactory =
+           clientFactory ??
+           ((currentConfig, clientIdentifier) => MqttServerClientAdapter(
+             config: currentConfig,
+             clientIdentifier: clientIdentifier,
+           )),
+       _clock = clock ?? DateTime.now;
 
-  late MqttServerClient _client;
-  final _scanResultController = StreamController<ScanResult>.broadcast();
-  Stream<ScanResult> get scanResultStream => _scanResultController.stream;
+  final MQTTConfig _config;
+  final MQTTClientAdapterFactory _clientFactory;
+  final DateTime Function() _clock;
 
+  final StreamController<ScanResult> _scanResultController =
+      StreamController<ScanResult>.broadcast();
+
+  MQTTClientAdapter? _client;
+  void Function()? _cancelPayloadSubscription;
   Timer? _scanTimer;
+  Future<void>? _initializationTask;
+
   bool _isInitialized = false;
   bool _isConnected = false;
+  bool _isDisposed = false;
 
-  /// Sets up MQTT connection and starts listening for updates
-  Future<void> initialize() async {
-    if (_isInitialized) {
-      return;
+  Stream<ScanResult> get scanResultStream => _scanResultController.stream;
+  bool get isInitialized => _isInitialized;
+  bool get isConnected => _isConnected;
+
+  Future<void> initialize() {
+    if (_isDisposed) {
+      return Future<void>.error(
+        MQTTException('MQTT service has already been disposed.'),
+      );
     }
 
+    if (_isInitialized) {
+      return Future<void>.value();
+    }
+
+    final pendingInitialization = _initializationTask;
+    if (pendingInitialization != null) {
+      return pendingInitialization;
+    }
+
+    final initialization = _initializeInternal().whenComplete(() {
+      _initializationTask = null;
+    });
+    _initializationTask = initialization;
+    return initialization;
+  }
+
+  Future<void> _initializeInternal() async {
+    _resetConnectionState();
+
+    final clientIdentifier =
+        'flutter_client_${_clock().millisecondsSinceEpoch}';
+    final client = _clientFactory(_config, clientIdentifier);
+    _client = client;
+
     try {
-      _client = MqttServerClient.withPort(
-        mqttServer,
-        'flutter_client_${DateTime.now().millisecondsSinceEpoch}',
-        AppConstants.mqttPort,
-      );
-      _client.secure = true;
-      _client.keepAlivePeriod = AppConstants.mqttKeepAlive;
-
-      final connMsg = MqttConnectMessage()
-        ..withClientIdentifier(
-          'flutter_client_${DateTime.now().millisecondsSinceEpoch}',
-        )
-        ..authenticateAs(mqttUsername, mqttPassword)
-        ..withWillQos(MqttQos.atMostOnce);
-
-      _client.connectionMessage = connMsg;
-
-      // attempt to connect to client..
-      try {
-        await _client.connect();
-      } catch (e) {
-        _client.disconnect();
-        throw MQTTException(
-          'Failed to connect to MQTT broker: ${e.toString()}',
-        );
-      }
-
+      await client.connect();
       _isConnected = true;
 
-      // broker topics
-      const resultsTopic =
-          'ble/scanner/${AppConstants.defaultDeviceId}/results';
-      const commandsTopic =
-          'ble/scanner/${AppConstants.defaultDeviceId}/commands';
+      client.subscribe(_resultsTopic);
 
-      // subscribe to broker
-      _client.subscribe(resultsTopic, MqttQos.atMostOnce);
-
-      final updates = _client.updates;
-      if (updates == null) {
-        throw MQTTException('Failed to get MQTT updates stream');
-      }
-
-      // listen to updates from broker
-      updates.listen(
-        (c) {
-          try {
-            for (final message in c) {
-              final payload =
-                  (message.payload as MqttPublishMessage).payload.message;
-              final payloadString = MqttPublishPayload.bytesToStringAsString(
-                payload,
-              );
-              final data = jsonDecode(payloadString) as Map<String, dynamic>;
-
-              try {
-                final result = ScanResult.fromJson(data);
-                _scanResultController.add(result);
-              } catch (e) {
-                // If parsing fails for ScanResult, we might want to log it but not crash the stream
-              }
-            }
-          } catch (e) {
-            _scanResultController.addError(
-              'Error parsing MQTT message: ${e.toString()}',
-            );
-          }
-        },
-        onError: (error) {
-          _scanResultController.addError(
-            'MQTT stream error: ${error.toString()}',
-          );
+      final payloadSubscription = client.payloadMessages.listen(
+        _handlePayloadMessage,
+        onError: (Object error, StackTrace stackTrace) {
+          _addStreamError(MQTTException('MQTT payload stream failure.'));
         },
       );
+      _cancelPayloadSubscription = () {
+        unawaited(payloadSubscription.cancel());
+        _cancelPayloadSubscription = null;
+      };
 
-      // Send request every 10 seconds
-      _scanTimer = Timer.periodic(AppConstants.scanInterval, (_) {
-        try {
-          final requestId = 'flutter_${DateTime.now().millisecondsSinceEpoch}';
-          final scanMessage = jsonEncode({
-            'action': 'scan',
-            'requestId': requestId,
-          });
-          final builder = MqttClientPayloadBuilder()
-            ..addUTF8String(scanMessage);
-          final payload = builder.payload;
-          if (payload != null) {
-            _client.publishMessage(commandsTopic, MqttQos.atMostOnce, payload);
-          }
-        } catch (e) {
-          _scanResultController.addError(
-            'Error sending scan request: ${e.toString()}',
-          );
-        }
+      _scanTimer = Timer.periodic(_config.scanInterval, (_) {
+        _publishScanRequest();
       });
 
       _isInitialized = true;
-    } catch (e) {
-      _isInitialized = false;
-      _isConnected = false;
-      if (e is MQTTException) {
+    } catch (error) {
+      _resetConnectionState();
+      _safeDisconnect(client);
+      _client = null;
+
+      if (error is MQTTException) {
         rethrow;
       }
-      throw MQTTException('Failed to initialize MQTT: ${e.toString()}');
+
+      throw MQTTException('Failed to initialize MQTT connection.');
     }
   }
 
-  void dispose() {
-    _scanTimer?.cancel();
-    if (_isConnected) {
-      try {
-        _client.disconnect();
-      } catch (e) {
-        // ignore errors during disconnect
-      }
-      _isConnected = false;
+  String get _resultsTopic => 'ble/scanner/${_config.deviceId}/results';
+  String get _commandsTopic => 'ble/scanner/${_config.deviceId}/commands';
+
+  @visibleForTesting
+  ScanResult parseScanResultPayload(String payloadString) {
+    final decoded = jsonDecode(payloadString);
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('MQTT payload must be a JSON object.');
     }
+
+    return ScanResult.fromJson(decoded);
+  }
+
+  void _handlePayloadMessage(String payloadString) {
+    try {
+      final result = parseScanResultPayload(payloadString);
+      if (_scanResultController.isClosed) {
+        return;
+      }
+      _scanResultController.add(result);
+    } catch (_) {
+      _addStreamError(MQTTException('Failed to parse scan result payload.'));
+    }
+  }
+
+  void _publishScanRequest() {
+    if (!_isConnected) {
+      return;
+    }
+
+    final client = _client;
+    if (client == null) {
+      return;
+    }
+
+    final requestId = 'flutter_${_clock().millisecondsSinceEpoch}';
+    final scanMessage = jsonEncode(<String, String>{
+      'action': 'scan',
+      'requestId': requestId,
+    });
+
+    try {
+      client.publishUtf8(_commandsTopic, scanMessage);
+    } catch (_) {
+      _addStreamError(MQTTException('Failed to send scan request.'));
+    }
+  }
+
+  void _addStreamError(MQTTException error) {
+    if (_scanResultController.isClosed) {
+      return;
+    }
+    _scanResultController.addError(error);
+  }
+
+  void _resetConnectionState() {
+    _scanTimer?.cancel();
+    _scanTimer = null;
+
+    _cancelPayloadSubscription?.call();
+    _cancelPayloadSubscription = null;
+
+    _isInitialized = false;
+    _isConnected = false;
+  }
+
+  void _safeDisconnect(MQTTClientAdapter client) {
+    try {
+      client.disconnect();
+    } catch (_) {}
+  }
+
+  void dispose() {
+    if (_isDisposed) {
+      return;
+    }
+    _isDisposed = true;
+
+    _scanTimer?.cancel();
+    _scanTimer = null;
+
+    _cancelPayloadSubscription?.call();
+    _cancelPayloadSubscription = null;
+
+    _isInitialized = false;
+    _isConnected = false;
+
+    final client = _client;
+    _client = null;
+    if (client != null) {
+      _safeDisconnect(client);
+    }
+
     if (!_scanResultController.isClosed) {
       _scanResultController.close();
     }
-    _isInitialized = false;
   }
 }

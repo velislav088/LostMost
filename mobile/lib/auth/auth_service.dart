@@ -10,96 +10,114 @@ class AppAuthException implements Exception {
 }
 
 class AuthService {
-  // Allow injecting a custom Supabase client (used for testing);
-  // fall back to the default global instance in production.
   final SupabaseClient _supabase;
 
-  /// Creates an AuthService with optional custom Supabase client.
   AuthService({SupabaseClient? client})
     : _supabase = client ?? Supabase.instance.client;
 
-  /// Sign in with email and password
+  Session? get currentSession => _supabase.auth.currentSession;
+
+  bool get isAuthenticated => currentSession != null;
+
+  Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
+
+  Stream<Session?> get authSessions =>
+      authStateChanges.map((event) => event.session);
+
   Future<AuthResponse> signInWithEmailPassword(
     String email,
     String password,
   ) async {
+    final normalizedEmail = _normalizeEmail(email);
+
+    if (normalizedEmail.isEmpty || password.isEmpty) {
+      throw AppAuthException('Email and password are required.');
+    }
+
     try {
       return await _supabase.auth.signInWithPassword(
-        email: email,
+        email: normalizedEmail,
         password: password,
       );
     } on AuthException catch (e) {
       throw AppAuthException(_parseAuthError(e.message), code: e.message);
-    } catch (e) {
-      throw AppAuthException('Failed to sign in: ${e.toString()}');
+    } catch (_) {
+      throw AppAuthException('Unable to sign in right now. Please try again.');
     }
   }
 
-  /// Sign up with email and password
   Future<AuthResponse> signUpWithEmailPassword(
     String email,
     String password,
   ) async {
+    final normalizedEmail = _normalizeEmail(email);
+
+    if (normalizedEmail.isEmpty || password.isEmpty) {
+      throw AppAuthException('Email and password are required.');
+    }
+
     try {
-      return await _supabase.auth.signUp(email: email, password: password);
+      return await _supabase.auth.signUp(
+        email: normalizedEmail,
+        password: password,
+      );
     } on AuthException catch (e) {
       throw AppAuthException(_parseAuthError(e.message), code: e.message);
-    } catch (e) {
-      throw AppAuthException('Failed to sign up: ${e.toString()}');
+    } catch (_) {
+      throw AppAuthException('Unable to sign up right now. Please try again.');
     }
   }
 
-  // Sign out
   Future<void> signOut() async {
     try {
       await _supabase.auth.signOut();
-    } catch (e) {
-      throw AppAuthException('Failed to sign out: ${e.toString()}');
+    } catch (_) {
+      throw AppAuthException('Unable to sign out right now. Please try again.');
     }
   }
 
-  // Get user email
   String? getCurrentUserEmail() {
-    try {
-      final session = _supabase.auth.currentSession;
-      final user = session?.user;
-      return user?.email;
-    } catch (e) {
-      throw AppAuthException(
-        'Failed to get current user email: ${e.toString()}',
-      );
-    }
+    final user = currentSession?.user;
+    return user?.email;
   }
 
-  // Expose auth state change stream
-  // Wrap Supabase's stream so UI can be dependant on AuthService.
-  Stream get authStateChanges => _supabase.auth.onAuthStateChange;
-
-  // Convenience stream of sessions only
-  Stream<dynamic> get authSessions =>
-      _supabase.auth.onAuthStateChange.map((e) => e.session);
-
-  /// Update password
   Future<UserResponse> updatePassword(String newPassword) async {
+    if (newPassword.isEmpty) {
+      throw AppAuthException('Password cannot be empty.');
+    }
+
     try {
       return await _supabase.auth.updateUser(
         UserAttributes(password: newPassword),
       );
-    } catch (e) {
-      throw AppAuthException('Failed to update password: ${e.toString()}');
+    } on AuthException catch (e) {
+      throw AppAuthException(_parseAuthError(e.message), code: e.message);
+    } catch (_) {
+      throw AppAuthException(
+        'Unable to update password right now. Please try again.',
+      );
     }
   }
 
-  /// Reset password for email
   Future<void> resetPasswordForEmail(String email) async {
+    final normalizedEmail = _normalizeEmail(email);
+    if (normalizedEmail.isEmpty) {
+      throw AppAuthException('Email is required.');
+    }
+
     try {
-      await _supabase.auth.resetPasswordForEmail(email);
-    } catch (e) {
-      throw AppAuthException('Failed to send reset email: ${e.toString()}');
+      await _supabase.auth.resetPasswordForEmail(normalizedEmail);
+    } on AuthException catch (e) {
+      throw AppAuthException(_parseAuthError(e.message), code: e.message);
+    } catch (_) {
+      throw AppAuthException(
+        'Unable to send reset email right now. Please try again.',
+      );
     }
   }
 
-  /// Parse Supabase auth errors to more normal looking messages
+  String _normalizeEmail(String email) => email.trim().toLowerCase();
+
   String _parseAuthError(String message) => switch (message) {
     _ when message.contains('Invalid login credentials') =>
       'Invalid email or password',
@@ -111,6 +129,10 @@ class AuthService {
       'Invalid email format',
     _ when message.contains('Signup disabled') =>
       'Signups are currently disabled',
+    _ when message.contains('Password should contain') =>
+      'Password does not meet security requirements',
+    _ when message.contains('For security purposes') =>
+      'Please wait before trying again',
     _ => message,
   };
 }

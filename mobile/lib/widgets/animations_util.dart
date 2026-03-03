@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 class FadeInAnimation extends StatefulWidget {
@@ -21,6 +23,7 @@ class _FadeInAnimationState extends State<FadeInAnimation>
   late AnimationController _controller;
   late Animation<double> _opacity;
   late Animation<Offset> _slide;
+  Timer? _delayTimer;
 
   @override
   void initState() {
@@ -37,15 +40,20 @@ class _FadeInAnimationState extends State<FadeInAnimation>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
-    Future.delayed(widget.delay, () {
-      if (mounted) {
-        _controller.forward();
-      }
-    });
+    if (widget.delay == Duration.zero) {
+      _controller.forward();
+    } else {
+      _delayTimer = Timer(widget.delay, () {
+        if (mounted) {
+          _controller.forward();
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
+    _delayTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -77,6 +85,7 @@ class _ScaleInAnimationState extends State<ScaleInAnimation>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scale;
+  Timer? _delayTimer;
 
   @override
   void initState() {
@@ -88,15 +97,20 @@ class _ScaleInAnimationState extends State<ScaleInAnimation>
       end: 1,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
 
-    Future.delayed(widget.delay, () {
-      if (mounted) {
-        _controller.forward();
-      }
-    });
+    if (widget.delay == Duration.zero) {
+      _controller.forward();
+    } else {
+      _delayTimer = Timer(widget.delay, () {
+        if (mounted) {
+          _controller.forward();
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
+    _delayTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }

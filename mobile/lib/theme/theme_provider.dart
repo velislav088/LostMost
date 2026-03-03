@@ -5,9 +5,14 @@ enum ThemeOption { system, light, dark }
 
 class ThemeProvider extends ChangeNotifier {
   ThemeProvider() {
-    _loadThemePreference();
+    initialized = _loadThemePreference();
   }
+
   ThemeOption _themeOption = ThemeOption.system;
+  SharedPreferences? _prefs;
+
+  late final Future<void> initialized;
+
   static const String _themeKey = 'theme_option';
 
   ThemeOption get themeOption => _themeOption;
@@ -24,27 +29,47 @@ class ThemeProvider extends ChangeNotifier {
   }
 
   Future<void> setThemeOption(ThemeOption option) async {
+    if (_themeOption == option) {
+      return;
+    }
+
     _themeOption = option;
     notifyListeners();
     await _saveThemePreference();
   }
 
-  // Loads saved theme from SharedPreferences
   Future<void> _loadThemePreference() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     final themeName = prefs.getString(_themeKey);
-    if (themeName != null) {
-      _themeOption = ThemeOption.values.firstWhere(
-        (e) => e.name == themeName,
-        orElse: () => ThemeOption.system,
-      );
-      notifyListeners();
+    if (themeName == null) {
+      return;
     }
+
+    final resolvedTheme = ThemeOption.values.firstWhere(
+      (e) => e.name == themeName,
+      orElse: () => ThemeOption.system,
+    );
+
+    if (_themeOption == resolvedTheme) {
+      return;
+    }
+
+    _themeOption = resolvedTheme;
+    notifyListeners();
   }
 
-  // Save current theme
+  Future<SharedPreferences> _getPrefs() async {
+    final prefs = _prefs;
+    if (prefs != null) {
+      return prefs;
+    }
+    final createdPrefs = await SharedPreferences.getInstance();
+    _prefs = createdPrefs;
+    return createdPrefs;
+  }
+
   Future<void> _saveThemePreference() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     await prefs.setString(_themeKey, _themeOption.name);
   }
 }

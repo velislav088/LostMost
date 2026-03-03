@@ -4,13 +4,11 @@ import 'package:mobile/auth/auth_gate.dart';
 import 'package:mobile/auth/auth_service.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MockAuthService extends Mock implements AuthService {}
 
-class FakeAuthEvent {
-  FakeAuthEvent(this.session);
-  final dynamic session;
-}
+class MockSession extends Mock implements Session {}
 
 void main() {
   late MockAuthService mockAuth;
@@ -22,9 +20,12 @@ void main() {
   testWidgets('AuthGate calls onAuthChange(true) when session present', (
     tester,
   ) async {
-    when(
-      () => mockAuth.authStateChanges,
-    ).thenAnswer((_) => Stream.value(FakeAuthEvent('session')));
+    final session = MockSession();
+    when(() => mockAuth.currentSession).thenReturn(session);
+    when(() => mockAuth.authStateChanges).thenAnswer(
+      (_) =>
+          Stream<AuthState>.value(AuthState(AuthChangeEvent.signedIn, session)),
+    );
 
     bool? result;
 
@@ -41,8 +42,6 @@ void main() {
       ),
     );
 
-    // Allow post-frame callbacks to run
-    await tester.pump();
     await tester.pump();
 
     expect(result, isTrue);
@@ -51,9 +50,12 @@ void main() {
   testWidgets('AuthGate calls onAuthChange(false) when no session', (
     tester,
   ) async {
-    when(
-      () => mockAuth.authStateChanges,
-    ).thenAnswer((_) => Stream.value(FakeAuthEvent(null)));
+    when(() => mockAuth.currentSession).thenReturn(null);
+    when(() => mockAuth.authStateChanges).thenAnswer(
+      (_) => Stream<AuthState>.value(
+        const AuthState(AuthChangeEvent.signedOut, null),
+      ),
+    );
 
     bool? result;
 
@@ -70,8 +72,6 @@ void main() {
       ),
     );
 
-    // Allow post-frame callbacks to run
-    await tester.pump();
     await tester.pump();
 
     expect(result, isFalse);

@@ -1,162 +1,139 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:go_router/go_router.dart';
-import 'package:mobile/auth/auth_gate.dart';
+import 'package:mobile/app_router.dart';
 import 'package:mobile/auth/auth_service.dart';
+import 'package:mobile/config/runtime_config.dart';
 import 'package:mobile/mqtt/mqtt_service.dart';
-import 'package:mobile/pages/home_page.dart';
-import 'package:mobile/pages/login_page.dart';
-import 'package:mobile/pages/profile_page.dart';
-import 'package:mobile/pages/register_page.dart';
-import 'package:mobile/pages/search_page.dart';
 import 'package:mobile/theme/app_theme.dart';
 import 'package:mobile/theme/settings_provider.dart';
 import 'package:mobile/theme/theme_provider.dart';
-import 'package:mobile/widgets/navigation_scaffold.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // load environment variables
-    try {
-      await dotenv.load(fileName: 'assets/.env');
-    } catch (e) {
-      throw Exception(
-        'Could not load environment files'
-        'Error: $e',
-      );
-    }
+    final runtimeConfig = await RuntimeConfig.load();
 
-    final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
-    final supabaseUrl = dotenv.env['SUPABASE_URL'];
+    await Supabase.initialize(
+      anonKey: runtimeConfig.supabaseAnonKey,
+      url: runtimeConfig.supabaseUrl,
+    );
 
-    // validate environment variables
-    if (supabaseAnonKey == null ||
-        supabaseAnonKey.isEmpty ||
-        supabaseUrl == null ||
-        supabaseUrl.isEmpty) {
-      throw Exception(
-        'Missing required SUPABASE_ANON_KEY and SUPABASE_URL environment variables',
-      );
-    }
-
-    // supabase setup
-    await Supabase.initialize(anonKey: supabaseAnonKey, url: supabaseUrl);
+    final authService = AuthService();
+    final mqttService = MQTTService(
+      config: MQTTConfig(
+        server: runtimeConfig.mqttServer,
+        username: runtimeConfig.mqttUsername,
+        password: runtimeConfig.mqttPassword,
+      ),
+    );
 
     runApp(
       MultiProvider(
         providers: [
-          ChangeNotifierProvider(create: (_) => ThemeProvider()),
-          ChangeNotifierProvider(create: (_) => SettingsProvider()),
-          Provider(create: (_) => MQTTService()),
-          Provider(create: (_) => AuthService()),
-        ],
-        child: const MyApp(),
-      ),
-    );
-  } catch (e) {
-    // handle fatal initialization errors
-    runApp(
-      MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                const SizedBox(height: 16),
-                const Text(
-                  'Initialization Error',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    e.toString(),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
-              ],
-            ),
+          ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider()),
+          ChangeNotifierProvider<SettingsProvider>(
+            create: (_) => SettingsProvider(),
           ),
-        ),
+          Provider<AuthService>.value(value: authService),
+          Provider<MQTTService>(
+            create: (_) => mqttService,
+            dispose: (_, service) => service.dispose(),
+          ),
+        ],
+        child: MyApp(authService: authService),
       ),
     );
+  } catch (error) {
+    runApp(BootstrapErrorApp(message: _bootstrapErrorMessage(error)));
   }
 }
 
-final _router = GoRouter(
-  initialLocation: '/auth',
-  routes: [
-    // unauthorised pages
-    GoRoute(path: '/auth', builder: (context, state) => const AuthGate()),
-    GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-    GoRoute(
-      path: '/register',
-      builder: (context, state) => const RegisterPage(),
-    ),
+String _bootstrapErrorMessage(Object error) {
+  if (!kDebugMode) {
+    return 'Initialization failed. Please contact support.';
+  }
+  return 'Initialization failed: $error';
+}
 
-    // navbar routes
-    StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) =>
-          NavigationScaffold(navigationShell: navigationShell),
-      branches: [
-        StatefulShellBranch(
-          routes: [
-            GoRoute(path: '/', builder: (context, state) => const HomePage()),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/search',
-              builder: (context, state) => const SearchPage(),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/profile',
-              builder: (context, state) => const ProfilePage(),
-            ),
-          ],
-        ),
-      ],
-    ),
-  ],
-);
+class MyApp extends StatefulWidget {
+  const MyApp({required this.authService, super.key});
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AuthService authService;
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final AppRouter _appRouter = AppRouter(authService: widget.authService);
+
+  @override
+  void dispose() {
+    _appRouter.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // get theme (light/dark)
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final themeMode = context.select<ThemeProvider, ThemeMode>(
+      (provider) => provider.themeMode,
+    );
+    final locale = context.select<SettingsProvider, Locale>(
+      (provider) => provider.locale,
+    );
 
-    // use go_router and themes
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: themeProvider.themeMode,
-      routerConfig: _router,
-      locale: settingsProvider.locale,
-      supportedLocales: const [Locale('en'), Locale('bg')],
-      localizationsDelegates: const [
+      themeMode: themeMode,
+      routerConfig: _appRouter.router,
+      locale: locale,
+      supportedLocales: const <Locale>[Locale('en'), Locale('bg')],
+      localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
     );
   }
+}
+
+class BootstrapErrorApp extends StatelessWidget {
+  const BootstrapErrorApp({required this.message, super.key});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+    home: Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text(
+                'Initialization Error',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }

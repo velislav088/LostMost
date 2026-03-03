@@ -7,30 +7,37 @@ import 'package:mocktail/mocktail.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MockAuthService extends Mock implements AuthService {}
+
+class MockUserResponse extends Mock implements UserResponse {}
 
 class MockPathProviderPlatform extends Fake
     with MockPlatformInterfaceMixin
     implements PathProviderPlatform {
+  MockPathProviderPlatform(this.tempDirectory);
+
+  final Directory tempDirectory;
+
   @override
-  Future<String?> getTemporaryPath() async {
-    final tempDir = Directory.systemTemp.createTempSync('test_cache_');
-    return tempDir.path;
-  }
+  Future<String?> getTemporaryPath() async => tempDirectory.path;
 }
 
 void main() {
   late MockAuthService mockAuthService;
   late ProfileViewModel viewModel;
+  late Directory tempDirectory;
 
-  setUp(() {
+  setUp(() async {
     mockAuthService = MockAuthService();
     when(
       () => mockAuthService.getCurrentUserEmail(),
     ).thenReturn('test@test.com');
+    when(
+      () => mockAuthService.updatePassword(any()),
+    ).thenAnswer((_) async => MockUserResponse());
 
-    // Mock PackageInfo
     PackageInfo.setMockInitialValues(
       appName: 'LostMost',
       packageName: 'com.example.mobile',
@@ -39,55 +46,88 @@ void main() {
       buildSignature: '',
     );
 
-    // Mock PathProvider
-    PathProviderPlatform.instance = MockPathProviderPlatform();
-
+    tempDirectory = Directory.systemTemp.createTempSync('profile_vm_test_');
+    PathProviderPlatform.instance = MockPathProviderPlatform(tempDirectory);
     viewModel = ProfileViewModel(authService: mockAuthService);
+    await viewModel.initialization;
   });
 
-  test('initial values are correct', () {
+  tearDown(() {
+    if (tempDirectory.existsSync()) {
+      tempDirectory.deleteSync(recursive: true);
+    }
+  });
+
+  test('initialization loads email and app version', () {
     expect(viewModel.currentUserEmail, 'test@test.com');
-    expect(viewModel.isLoading, false);
-    expect(viewModel.error, null);
-  });
-
-  test('loadAppVersion updates version', () async {
-    // wait for init
-    await Future.delayed(Duration.zero);
     expect(viewModel.appVersion, '1.0.0');
+    expect(viewModel.error, isNull);
   });
 
   test('calculateCacheSize updates cacheSize', () async {
     await viewModel.calculateCacheSize();
-    expect(viewModel.cacheSize, isNotNull);
+
     expect(viewModel.cacheSize, isNot('Calculating...'));
+    expect(viewModel.cacheSize, isNotEmpty);
   });
 
-  test('clearCache updates cacheSize', () async {
+  test('clearCache returns true and clears errors', () async {
+    final cacheFile = File('${tempDirectory.path}/cache.txt')
+      ..writeAsStringSync('cached-data');
+    expect(cacheFile.existsSync(), isTrue);
+
     final result = await viewModel.clearCache();
-    expect(result, true);
-    expect(viewModel.error, null);
+
+    expect(result, isTrue);
+    expect(viewModel.error, isNull);
+    expect(cacheFile.existsSync(), isFalse);
   });
 
-  test('updatePassword success', () async {
-    when(() => mockAuthService.updatePassword(any())).thenAnswer(
-      (_) async =>
-          // mocking UserResponse is hard as it comes from supabase_flutter,
-          // but we can just return dynamic or rely on the fact that updatePassword returns Future<UserResponse>
-          // Actually we can just mock the future completion as void if we don't use the result.
-          // But updatePassword returns UserResponse.
-          // Let's just mock it to throw or not throw.
-          throw UnimplementedError(), // wait, we need to return something valid or mock the type
-    );
+  test('updatePassword rejects short passwords', () async {
+    final result = await viewModel.updatePassword('123');
 
-    // Retrying with just void if possible or creating a fake.
-    // Since we can't easily instantiate UserResponse without dependencies, let's assume success if no error thrown?
-    // Wait, `updatePassword` in VM calls `_authService.updatePassword`.
-    // We can use `when(...).thenAnswer((_) async => null as dynamic)` or similar hack
-    // BUT types are checked.
-    // Let's just catch the UnimplementedError or mock it properly if we can import UserResponse.
-    // UserResponse is from supabase_flutter.
+    expect(result, isFalse);
+    expect(viewModel.error, 'Password must be at least 6 characters.');
+    verifyNever(() => mockAuthService.updatePassword(any()));
   });
 
-  // Revised updatePassword test below
+  test('updatePassword success clears loading and error', () async {
+    final result = await viewModel.updatePassword('123456');
+
+    expect(result, isTrue);
+    expect(viewModel.isLoading, isFalse);
+    expect(viewModel.error, isNull);
+    verify(() => mockAuthService.updatePassword('123456')).called(1);
+  });
+
+  test('updatePassword handles AppAuthException', () async {
+    when(
+      () => mockAuthService.updatePassword(any()),
+    ).thenThrow(AppAuthException('Unable to update.'));
+
+    final result = await viewModel.updatePassword('123456');
+
+    expect(result, isFalse);
+    expect(viewModel.isLoading, isFalse);
+    expect(viewModel.error, 'Unable to update.');
+  });
+
+  test('updatePassword handles generic failures', () async {
+    when(
+      () => mockAuthService.updatePassword(any()),
+    ).thenThrow(Exception('unknown'));
+
+    final result = await viewModel.updatePassword('123456');
+
+    expect(result, isFalse);
+    expect(viewModel.error, 'Failed to update password.');
+  });
+
+  test('logout delegates to auth service', () async {
+    when(() => mockAuthService.signOut()).thenAnswer((_) async {});
+
+    await viewModel.logout();
+
+    verify(() => mockAuthService.signOut()).called(1);
+  });
 }

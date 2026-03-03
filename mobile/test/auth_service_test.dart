@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/auth/auth_service.dart';
 import 'package:mocktail/mocktail.dart';
@@ -9,12 +11,13 @@ class MockGoTrueClient extends Mock implements GoTrueClient {}
 
 class MockAuthResponse extends Mock implements AuthResponse {}
 
+class MockUserResponse extends Mock implements UserResponse {}
+
 class MockSession extends Mock implements Session {}
 
 class MockUser extends Mock implements User {}
 
 void main() {
-  // Setup mock data
   late MockSupabaseClient mockClient;
   late MockGoTrueClient mockAuth;
   late AuthService authService;
@@ -24,35 +27,30 @@ void main() {
     mockAuth = MockGoTrueClient();
     when(() => mockClient.auth).thenReturn(mockAuth);
 
-    // Register fallback value for UserAttributes.
     registerFallbackValue(UserAttributes());
 
     authService = AuthService(client: mockClient);
   });
 
-  test('signInWithEmailPassword calls the right Supabase method', () async {
-    final mockResponse = MockAuthResponse();
+  test('signInWithEmailPassword normalizes email before call', () async {
     when(
       () => mockAuth.signInWithPassword(
         email: any(named: 'email'),
         password: any(named: 'password'),
       ),
-    ).thenAnswer((_) async => mockResponse);
+    ).thenAnswer((_) async => MockAuthResponse());
 
-    await authService.signInWithEmailPassword(
-      'test@example.com',
-      'password123',
-    );
+    await authService.signInWithEmailPassword('  TEST@EXAMPLE.COM  ', 'secret');
 
     verify(
       () => mockAuth.signInWithPassword(
         email: 'test@example.com',
-        password: 'password123',
+        password: 'secret',
       ),
     ).called(1);
   });
 
-  test('signUpWithEmailPassword works properly', () async {
+  test('signUpWithEmailPassword normalizes email before call', () async {
     when(
       () => mockAuth.signUp(
         email: any(named: 'email'),
@@ -60,11 +58,19 @@ void main() {
       ),
     ).thenAnswer((_) async => MockAuthResponse());
 
-    await authService.signUpWithEmailPassword('newuser@test.com', 'pass456');
+    await authService.signUpWithEmailPassword('  NEW@TEST.COM ', 'pass456');
 
     verify(
-      () => mockAuth.signUp(email: 'newuser@test.com', password: 'pass456'),
+      () => mockAuth.signUp(email: 'new@test.com', password: 'pass456'),
     ).called(1);
+  });
+
+  test('resetPasswordForEmail normalizes email before call', () async {
+    when(() => mockAuth.resetPasswordForEmail(any())).thenAnswer((_) async {});
+
+    await authService.resetPasswordForEmail(' USER@EMAIL.COM ');
+
+    verify(() => mockAuth.resetPasswordForEmail('user@email.com')).called(1);
   });
 
   test('signOut calls Supabase signOut', () async {
@@ -75,90 +81,212 @@ void main() {
     verify(() => mockAuth.signOut()).called(1);
   });
 
-  test('getCurrentUserEmail returns the email from current session', () {
-    final mockSession = MockSession();
-    final mockUser = MockUser();
+  test('getCurrentUserEmail returns email from current session', () {
+    final session = MockSession();
+    final user = MockUser();
+    when(() => user.email).thenReturn('user@email.com');
+    when(() => session.user).thenReturn(user);
+    when(() => mockAuth.currentSession).thenReturn(session);
 
-    when(() => mockUser.email).thenReturn('user@email.com');
-    when(() => mockSession.user).thenReturn(mockUser);
-    when(() => mockAuth.currentSession).thenReturn(mockSession);
+    expect(authService.getCurrentUserEmail(), 'user@email.com');
+  });
 
-    final email = authService.getCurrentUserEmail();
+  test('isAuthenticated is true when currentSession exists', () {
+    when(() => mockAuth.currentSession).thenReturn(MockSession());
+    expect(authService.isAuthenticated, isTrue);
+  });
 
-    expect(email, 'user@email.com');
+  test('isAuthenticated is false when currentSession is null', () {
+    when(() => mockAuth.currentSession).thenReturn(null);
+    expect(authService.isAuthenticated, isFalse);
+  });
+
+  test('authSessions maps AuthState to Session', () async {
+    final session = MockSession();
+    final controller = StreamController<AuthState>();
+    when(() => mockAuth.onAuthStateChange).thenAnswer((_) => controller.stream);
+
+    final emitted = <Session?>[];
+    final subscription = authService.authSessions.listen(emitted.add);
+
+    controller.add(AuthState(AuthChangeEvent.signedIn, session));
+    await Future<void>.delayed(Duration.zero);
+
+    expect(emitted, <Session?>[session]);
+
+    await subscription.cancel();
+    await controller.close();
+  });
+
+  test('signInWithEmailPassword maps auth errors to safe message', () async {
+    when(
+      () => mockAuth.signInWithPassword(
+        email: any(named: 'email'),
+        password: any(named: 'password'),
+      ),
+    ).thenThrow(const AuthException('Invalid login credentials'));
+
+    expect(
+      () => authService.signInWithEmailPassword('fail@test.com', 'wrong'),
+      throwsA(
+        isA<AppAuthException>().having(
+          (error) => error.message,
+          'message',
+          'Invalid email or password',
+        ),
+      ),
+    );
+  });
+
+  test('signUpWithEmailPassword maps auth errors to safe message', () async {
+    when(
+      () => mockAuth.signUp(
+        email: any(named: 'email'),
+        password: any(named: 'password'),
+      ),
+    ).thenThrow(const AuthException('User already registered'));
+
+    expect(
+      () => authService.signUpWithEmailPassword('test@test.com', '123456'),
+      throwsA(
+        isA<AppAuthException>().having(
+          (error) => error.message,
+          'message',
+          'Email is already registered',
+        ),
+      ),
+    );
   });
 
   test(
-    'signInWithEmailPassword throws AppAuthException on failed sign-in',
+    'signOut returns generic safe error for unexpected exceptions',
     () async {
-      const supabaseException = AuthException('Invalid login credentials');
+      when(() => mockAuth.signOut()).thenThrow(Exception('internal details'));
+
+      expect(
+        () => authService.signOut(),
+        throwsA(
+          isA<AppAuthException>().having(
+            (error) => error.message,
+            'message',
+            'Unable to sign out right now. Please try again.',
+          ),
+        ),
+      );
+    },
+  );
+
+  test('updatePassword passes request to Supabase client', () async {
+    when(
+      () => mockAuth.updateUser(any()),
+    ).thenAnswer((_) async => MockUserResponse());
+
+    await authService.updatePassword('newpass123');
+
+    verify(() => mockAuth.updateUser(any())).called(1);
+  });
+
+  test('empty email throws validation exception', () async {
+    expect(
+      () => authService.signInWithEmailPassword('', 'pass'),
+      throwsA(
+        isA<AppAuthException>().having(
+          (error) => error.message,
+          'message',
+          'Email and password are required.',
+        ),
+      ),
+    );
+  });
+
+  test(
+    'signInWithEmailPassword returns generic message on unknown error',
+    () async {
       when(
         () => mockAuth.signInWithPassword(
           email: any(named: 'email'),
           password: any(named: 'password'),
         ),
-      ).thenThrow(supabaseException);
+      ).thenThrow(Exception('network down'));
 
       expect(
-        () => authService.signInWithEmailPassword('fail@test.com', 'wrongpass'),
-        throwsA(isA<AppAuthException>()),
+        () => authService.signInWithEmailPassword('a@b.com', '123456'),
+        throwsA(
+          isA<AppAuthException>().having(
+            (error) => error.message,
+            'message',
+            'Unable to sign in right now. Please try again.',
+          ),
+        ),
       );
     },
   );
 
   test(
-    'signUpWithEmailPassword throws AppAuthException on failed sign-up',
+    'signUpWithEmailPassword returns generic message on unknown error',
     () async {
-      const supabaseException = AuthException('User already registered');
       when(
         () => mockAuth.signUp(
           email: any(named: 'email'),
           password: any(named: 'password'),
         ),
-      ).thenThrow(supabaseException);
+      ).thenThrow(Exception('network down'));
 
       expect(
-        () => authService.signUpWithEmailPassword(
-          'existing@test.com',
-          'password123',
+        () => authService.signUpWithEmailPassword('a@b.com', '123456'),
+        throwsA(
+          isA<AppAuthException>().having(
+            (error) => error.message,
+            'message',
+            'Unable to sign up right now. Please try again.',
+          ),
         ),
-        throwsA(isA<AppAuthException>()),
       );
     },
   );
 
-  test('signOut throws AppAuthException on error', () async {
-    when(() => mockAuth.signOut()).thenThrow(Exception('Sign out failed'));
-
-    expect(() => authService.signOut(), throwsA(isA<AppAuthException>()));
+  test('updatePassword validates empty values', () async {
+    expect(
+      () => authService.updatePassword(''),
+      throwsA(
+        isA<AppAuthException>().having(
+          (error) => error.message,
+          'message',
+          'Password cannot be empty.',
+        ),
+      ),
+    );
+    verifyNever(() => mockAuth.updateUser(any()));
   });
 
-  test('updatePassword throws AppAuthException on error', () async {
+  test('resetPasswordForEmail validates empty values', () async {
+    expect(
+      () => authService.resetPasswordForEmail(''),
+      throwsA(
+        isA<AppAuthException>().having(
+          (error) => error.message,
+          'message',
+          'Email is required.',
+        ),
+      ),
+    );
+    verifyNever(() => mockAuth.resetPasswordForEmail(any()));
+  });
+
+  test('updatePassword maps auth exception message', () async {
     when(
       () => mockAuth.updateUser(any()),
-    ).thenThrow(Exception('Failed to update'));
+    ).thenThrow(const AuthException('Password should contain'));
 
     expect(
-      () => authService.updatePassword('newpass123'),
-      throwsA(isA<AppAuthException>()),
+      () => authService.updatePassword('123456'),
+      throwsA(
+        isA<AppAuthException>().having(
+          (error) => error.message,
+          'message',
+          'Password does not meet security requirements',
+        ),
+      ),
     );
-  });
-
-  test('resetPasswordForEmail throws AppAuthException on error', () async {
-    when(
-      () => mockAuth.resetPasswordForEmail(any()),
-    ).thenThrow(Exception('Reset failed'));
-
-    expect(
-      () => authService.resetPasswordForEmail('user@email.com'),
-      throwsA(isA<AppAuthException>()),
-    );
-  });
-
-  test('getCurrentUserEmail returns null if there is no current session', () {
-    when(() => mockAuth.currentSession).thenReturn(null);
-
-    final email = authService.getCurrentUserEmail();
-    expect(email, isNull);
   });
 }
