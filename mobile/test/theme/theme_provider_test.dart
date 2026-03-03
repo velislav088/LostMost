@@ -10,7 +10,7 @@ void main() {
 
   test('ThemeProvider initializes with defaults', () async {
     final provider = ThemeProvider();
-    await Future.delayed(Duration.zero);
+    await provider.initialized;
 
     expect(provider.themeOption, ThemeOption.system);
     expect(provider.themeMode, ThemeMode.system);
@@ -18,7 +18,7 @@ void main() {
 
   test('setThemeOption updates theme and persists', () async {
     final provider = ThemeProvider();
-    await Future.delayed(Duration.zero);
+    await provider.initialized;
 
     await provider.setThemeOption(ThemeOption.dark);
     expect(provider.themeOption, ThemeOption.dark);
@@ -32,7 +32,7 @@ void main() {
     SharedPreferences.setMockInitialValues({'theme_option': 'light'});
 
     final provider = ThemeProvider();
-    await Future.delayed(Duration.zero);
+    await provider.initialized;
 
     expect(provider.themeOption, ThemeOption.light);
   });
